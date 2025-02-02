@@ -109,6 +109,9 @@ alias fp='tmux-se'
 export PATH="$HOME/dotfiles:$PATH"
 export PATH="$HOME/.local/script:$PATH"
 export PATH="$HOME/development/flutter/bin:$PATH"
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
 # Shell integrations
 
 
