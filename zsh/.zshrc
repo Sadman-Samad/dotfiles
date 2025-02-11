@@ -184,3 +184,9 @@ eval "$(zoxide init --cmd cd zsh)"
 
 # Shopify Hydrogen alias to local projects
 alias h2='$(npm prefix -s)/node_modules/.bin/shopify hydrogen'
+
+## [Completion]
+## Completion scripts setup. Remove the following line to uninstall
+[[ -f /home/galib/.dart-cli-completion/zsh-config.zsh ]] && . /home/galib/.dart-cli-completion/zsh-config.zsh || true
+## [/Completion]
+
