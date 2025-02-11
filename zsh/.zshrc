@@ -112,6 +112,8 @@ export PATH="$HOME/development/flutter/bin:$PATH"
 # bun
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
+#mason
+export PATH="$PATH":"$HOME/.pub-cache/bin"
 # Shell integrations
 
 

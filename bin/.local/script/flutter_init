@@ -1,0 +1,102 @@
+#!/bin/bash
+
+# Prompt for project details
+echo "Enter your Flutter project name:"
+read PROJECT_NAME
+
+echo "Enter your package name (e.g., com.example.myapp):"
+read PACKAGE_NAME
+
+# Create Flutter project
+flutter create --org $PACKAGE_NAME $PROJECT_NAME
+
+# Navigate into project directory
+cd $PROJECT_NAME || exit
+
+# Install dependencies
+echo "Installing dependencies..."
+flutter pub add flutter_hooks
+flutter pub add freezed_annotation json_annotation
+flutter pub add --dev build_runner freezed json_serializable
+flutter pub add flutter_launcher_icons
+
+# Configure Freezed
+echo "Setting up Freezed..."
+echo "
+import 'package:freezed_annotation/freezed_annotation.dart';
+part 'generated/model.freezed.dart';
+part 'generated/model.g.dart';
+
+@freezed
+class Model with _\$Model {
+  factory Model({required String name}) = _Model;
+  factory Model.fromJson(Map<String, dynamic> json) => _\$ModelFromJson(json);
+}
+" > lib/model.dart
+
+# Ensure necessary directories exist
+mkdir -p lib/generated
+mkdir -p lib/src
+
+# Create build.yaml for build_runner configuration
+echo "
+build_targets:
+  \$default:
+    builders:
+      freezed:
+        options:
+          output_dir: lib/generated
+      json_serializable:
+        options:
+          explicit_to_json: true
+" > build.yaml
+
+# Run Freezed Code Generation
+flutter pub run build_runner build --delete-conflicting-outputs --output-dir lib/generated
+
+# Configure Flutter Launcher Icons
+echo "Setting up Flutter Launcher Icons..."
+echo "
+flutter_icons:
+  android: true
+  ios: true
+  image_path: 'assets/icon.png'
+" > pubspec.yaml
+
+# Run Flutter Launcher Icons
+flutter pub run flutter_launcher_icons:main
+
+# Create Makefile
+echo "
+.PHONY: build watch clean format analyze
+
+build:
+	flutter pub run build_runner build --delete-conflicting-outputs --output-dir lib/generated
+
+watch:
+	flutter pub run build_runner watch --delete-conflicting-outputs --output-dir lib/generated
+
+clean:
+	flutter clean
+	flutter pub get
+
+format:
+	flutter format .
+
+analyze:
+	flutter analyze
+
+run:
+	flutter run
+" > Makefile
+
+# Initialize Git repository
+echo "Initializing Git repository..."
+git init
+
+git add .
+git commit -m "Bismillah"
+
+# Print success message
+echo "Flutter project setup complete! Navigate to $PROJECT_NAME and start coding."
+
