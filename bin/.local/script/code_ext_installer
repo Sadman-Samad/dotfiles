@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# Create required directories
+mkdir -p ~/.config/Code/User
+
+# Install extensions
+while read extension; do
+  code --install-extension "$extension"
+done < ~/.config/Code/extensions.txt

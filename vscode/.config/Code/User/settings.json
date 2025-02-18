@@ -18,9 +18,9 @@
 
   "zenMode.hideLineNumbers": false,
   "editor.lineNumbers": "relative",
-  "editor.fontFamily": "'MesloLGS NF', monospace",
-  "editor.inlineSuggest.fontFamily": "'MesloLGS NF', monospace",
-  "terminal.integrated.fontFamily": "'MesloLGS NF', monospace",
+  "editor.fontFamily": "'JetbrainsMono NF','MesloLGS NF', monospace",
+  "editor.inlineSuggest.fontFamily": "'JetbrainsMono NF',MesloLGS NF', monospace",
+  "terminal.integrated.fontFamily": "'JetbrainsMono NF','MesloLGS NF', monospace",
   "editor.fontLigatures": "'calt', 'liga', 'dlig', 'ss01', 'ss02', 'ss03', 'ss04', 'ss05', 'ss06', 'ss07', 'ss08'",
 
   "vim.leader": "<Space>",
@@ -29,6 +29,12 @@
   "vim.incsearch": true,
   "vim.useSystemClipboard": true,
   "vim.useCtrlKeys": true,
+  // Update these settings for better Neovim-like experience
+  "vim.highlightedyank.enable": true,
+  "vim.highlightedyank.duration": 200,
+  "vim.smartRelativeLine": true,
+  "vim.sneak": true,
+  "vim.surround": true,
   "vim.insertModeKeyBindings": [
     {
       "before": ["j", "j"],
@@ -47,27 +53,55 @@
 
     // panes
     {
-      "before": ["leader", "h"],
+      "before": ["<C-h>"],
       "commands": ["workbench.action.focusLeftGroup"]
     },
     {
-      "before": ["leader", "j"],
-      "commands": ["workbench.action.focusBelowGroup"]
-    },
-    {
-      "before": ["leader", "k"],
-      "commands": ["workbench.action.focusAboveGroup"]
-    },
-    {
-      "before": ["leader", "l"],
+      "before": ["<C-l>"],
       "commands": ["workbench.action.focusRightGroup"]
     },
     {
-      "before": ["<C-n>"],
+      "before": ["<C-k>"],
+      "commands": ["workbench.action.focusAboveGroup"]
+    },
+    {
+      "before": ["<C-j>"],
+      "commands": ["workbench.action.focusBelowGroup"]
+    },
+    {
+      "before": ["learder", "u"],
       "commands": [":nohl"]
     },
+
+    // Toggle File Explorer with Ctrl+E
+    {
+      "before": ["<leader>", "e"],
+      "commands": ["workbench.action.toggleSidebarVisibility"]
+    },
+    {
+      "before": ["<leader>", "t"],
+      "commands": ["workbench.action.toggleAuxiliaryBar"]
+    },
+
+    // Toggle Copilot Chat with leader+aa
+
     // NICE TO HAVE
-    { "before": ["leader", "w"], "commands": [":w!"] },
+    {
+      "before": ["g", "d"],
+      "commands": ["editor.action.revealDefinition"]
+    },
+    {
+      "before": ["g", "r"],
+      "commands": ["editor.action.goToReferences"]
+    },
+    {
+      "before": ["g", "i"],
+      "commands": ["editor.action.goToImplementation"]
+    },
+    {
+      "before": ["<leader>", "b", "d"],
+      "commands": [":q"]
+    },
     { "before": ["leader", "q"], "commands": [":q!"] },
     { "before": ["leader", "x"], "commands": [":x!"] },
     {
@@ -78,20 +112,49 @@
       "before": ["]", "d"],
       "commands": ["editor.action.marker.next"]
     },
+    //code actions
     {
       "before": ["<leader>", "c", "a"],
       "commands": ["editor.action.quickFix"]
     },
+    {
+      "before": ["<leader>", "r", "n"],
+      "commands": ["editor.action.rename"]
+    },
+
+    // SEARCH
+    {
+      "before": ["leader", "f", "f"],
+      "commands": ["workbench.action.quickOpen"]
+    },
+    {
+      "before": ["leader", "f", "g"],
+      "commands": ["workbench.action.findInFiles"]
+    },
+    { "before": ["leader", "p"], "commands": ["editor.action.formatDocument"] },
+    {
+      "before": ["K"],
+      "commands": ["editor.action.showDefinitionPreviewHover"]
+    },
+    // search inside all files
+    {
+      "before": ["leader", "s", "g"],
+      "commands": ["workbench.action.findInFiles"]
+    },
+    {
+      "before": ["<leader>", "s", "s"],
+      "commands": ["workbench.action.showAllSymbols"]
+    },
+    {
+      "before": ["<leader>", "s", "r"],
+      "commands": ["workbench.action.openRecent"]
+    },
+
     { "before": ["leader", "f"], "commands": ["workbench.action.quickOpen"] },
     { "before": ["leader", "p"], "commands": ["editor.action.formatDocument"] },
     {
-      "before": ["g", "h"],
+      "before": ["K"],
       "commands": ["editor.action.showDefinitionPreviewHover"]
-    },
-
-    {
-      "before": ["leader", "leader"],
-      "commands": ["tomrijndorp.find-it-faster."]
     }
   ],
   "vim.visualModeKeyBindings": [
@@ -122,5 +185,14 @@
     "FIG_NEW_SESSION": "1",
     "Q_NEW_SESSION": "1"
   },
-  "workbench.startupEditor": "none"
+  "workbench.startupEditor": "none",
+  "[dart]": {
+    "editor.formatOnSave": true,
+    "editor.formatOnType": true,
+    "editor.rulers": [80],
+    "editor.selectionHighlight": false,
+    "editor.tabCompletion": "onlySnippets",
+    "editor.wordBasedSuggestions": "off"
+  },
+  "inlineChat.finishOnType": true
 }

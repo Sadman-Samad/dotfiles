@@ -24,6 +24,9 @@ require("lazy").setup({
     { import = "lazyvim.plugins.extras.lang.yaml" },
     { import = "lazyvim.plugins.extras.lang.tailwind" },
 
+    -- coding
+
+    { import = "lazyvim.plugins.extras.coding.luasnip" },
     { import = "lazyvim.plugins.extras.lang.ansible" },
     -- utils
     { import = "lazyvim.plugins.extras.util.rest" },
