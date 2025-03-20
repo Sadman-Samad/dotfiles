@@ -1,5 +1,5 @@
 {
-  "workbench.colorTheme": "Atomicc",
+  "workbench.colorTheme": "Shades of Purple (Super Dark)",
   "workbench.sideBar.location": "right",
   "editor.renderControlCharacters": false,
   "editor.formatOnSave": true,
@@ -69,7 +69,7 @@
       "commands": ["workbench.action.focusBelowGroup"]
     },
     {
-      "before": ["learder", "u"],
+      "before": ["C-u"],
       "commands": [":nohl"]
     },
 
@@ -84,6 +84,26 @@
     },
 
     // Toggle Copilot Chat with leader+aa
+    // search in buffer as i type like telescope
+    {
+      "before": ["<leader>", "g", "s"],
+      "commands": ["workbench.view.scm"]
+    },
+    // Git branches (like Telescope git_branches)
+    {
+      "before": ["<leader>", "g", "b"],
+      "commands": ["git.checkout"]
+    },
+    // Git commits (like Telescope git_commits)
+    {
+      "before": ["<leader>", "g", "c"],
+      "commands": ["git.viewHistory"]
+    },
+    // Git file history
+    {
+      "before": ["<leader>", "g", "h"],
+      "commands": ["git.viewFileHistory"]
+    },
 
     // NICE TO HAVE
     {
@@ -102,8 +122,8 @@
       "before": ["<leader>", "b", "d"],
       "commands": [":q"]
     },
-    { "before": ["leader", "q"], "commands": [":q!"] },
-    { "before": ["leader", "x"], "commands": [":x!"] },
+    { "before": ["<leader>", "q"], "commands": [":q!"] },
+    { "before": ["<leader>", "x"], "commands": [":x!"] },
     {
       "before": ["[", "d"],
       "commands": ["editor.action.marker.prev"]
@@ -124,21 +144,28 @@
 
     // SEARCH
     {
-      "before": ["leader", "f", "f"],
+      "before": ["<leader>", "f", "f"],
       "commands": ["workbench.action.quickOpen"]
     },
+
     {
-      "before": ["leader", "f", "g"],
-      "commands": ["workbench.action.findInFiles"]
+      "before": ["<leader>", "<leader>", "f"],
+      "commands": [
+        {
+          "command": "workbench.action.quickOpen",
+          "args": {
+            "value": "%"
+          }
+        }
+      ]
     },
-    { "before": ["leader", "p"], "commands": ["editor.action.formatDocument"] },
     {
       "before": ["K"],
       "commands": ["editor.action.showDefinitionPreviewHover"]
     },
     // search inside all files
     {
-      "before": ["leader", "s", "g"],
+      "before": ["<leader>", "s", "g"],
       "commands": ["workbench.action.findInFiles"]
     },
     {
@@ -150,8 +177,6 @@
       "commands": ["workbench.action.openRecent"]
     },
 
-    { "before": ["leader", "f"], "commands": ["workbench.action.quickOpen"] },
-    { "before": ["leader", "p"], "commands": ["editor.action.formatDocument"] },
     {
       "before": ["K"],
       "commands": ["editor.action.showDefinitionPreviewHover"]
@@ -165,7 +190,7 @@
     { "before": ["J"], "commands": ["editor.action.moveLinesDownAction"] },
     { "before": ["K"], "commands": ["editor.action.moveLinesUpAction"] },
     // toggle comment selection
-    { "before": ["leader", "c"], "commands": ["editor.action.commentLine"] }
+    { "before": ["<leader>", "c"], "commands": ["editor.action.commentLine"] }
   ],
   "[typescriptreact]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
@@ -194,5 +219,6 @@
     "editor.tabCompletion": "onlySnippets",
     "editor.wordBasedSuggestions": "off"
   },
-  "inlineChat.finishOnType": true
+  "inlineChat.finishOnType": true,
+  "svg.preview.mode": "svg"
 }
