@@ -217,8 +217,15 @@
     "editor.rulers": [80],
     "editor.selectionHighlight": false,
     "editor.tabCompletion": "onlySnippets",
-    "editor.wordBasedSuggestions": "off"
+    "editor.wordBasedSuggestions": "off",
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "explicit",
+      "source.organizeImports": "explicit"
+    }
   },
   "inlineChat.finishOnType": true,
-  "svg.preview.mode": "svg"
+  "svg.preview.mode": "svg",
+  "github.copilot.enable": {
+    "*": false
+  }
 }

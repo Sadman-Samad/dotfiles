@@ -114,6 +114,8 @@ export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 #mason
 export PATH="$PATH":"$HOME/.pub-cache/bin"
+#shorebird
+export PATH="$PATH":"$HOME/.shorebird/bin/shorebird"
 # Shell integrations
 
 
@@ -190,3 +192,4 @@ alias h2='$(npm prefix -s)/node_modules/.bin/shopify hydrogen'
 [[ -f /home/galib/.dart-cli-completion/zsh-config.zsh ]] && . /home/galib/.dart-cli-completion/zsh-config.zsh || true
 ## [/Completion]
 
+export PATH="/home/galib/.shorebird/bin:$PATH"
