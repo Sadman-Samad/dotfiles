@@ -225,6 +225,7 @@
   },
   "inlineChat.finishOnType": true,
   "svg.preview.mode": "svg",
+  "github.copilot.nextEditSuggestions.enabled": true,
   "github.copilot.enable": {
     "*": false
   }
