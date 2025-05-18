@@ -193,3 +193,6 @@ alias h2='$(npm prefix -s)/node_modules/.bin/shopify hydrogen'
 ## [/Completion]
 
 export PATH="/home/galib/.shorebird/bin:$PATH"
+
+# bun completions
+[ -s "/home/galib/.bun/_bun" ] && source "/home/galib/.bun/_bun"

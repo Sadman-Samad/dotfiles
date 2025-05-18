@@ -1,5 +1,5 @@
 {
-  "workbench.colorTheme": "Shades of Purple (Super Dark)",
+  "workbench.colorTheme": "Atomicc",
   "workbench.sideBar.location": "right",
   "editor.renderControlCharacters": false,
   "editor.formatOnSave": true,
@@ -225,8 +225,5 @@
   },
   "inlineChat.finishOnType": true,
   "svg.preview.mode": "svg",
-  "github.copilot.nextEditSuggestions.enabled": true,
-  "github.copilot.enable": {
-    "*": false
-  }
+  "github.copilot.nextEditSuggestions.enabled": true
 }
