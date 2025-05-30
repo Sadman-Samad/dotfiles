@@ -69,7 +69,7 @@
       "commands": ["workbench.action.focusBelowGroup"]
     },
     {
-      "before": ["C-u"],
+      "before": ["<leader>", "u", "r"],
       "commands": [":nohl"]
     },
 
