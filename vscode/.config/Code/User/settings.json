@@ -1,6 +1,5 @@
 {
   "workbench.colorTheme": "Atomicc",
-  "workbench.sideBar.location": "right",
   "editor.renderControlCharacters": false,
   "editor.formatOnSave": true,
   "editor.suggest.insertMode": "replace",
@@ -225,5 +224,6 @@
   },
   "inlineChat.finishOnType": true,
   "svg.preview.mode": "svg",
-  "github.copilot.nextEditSuggestions.enabled": true
+  "github.copilot.nextEditSuggestions.enabled": true,
+  "workbench.sideBar.location": "right"
 }
