@@ -1,27 +1,31 @@
 {
-  "workbench.colorTheme": "Atomicc",
+  "workbench.colorTheme": "Monokai Pro (Filter Octagon)",
   "editor.renderControlCharacters": false,
   "editor.formatOnSave": true,
   "editor.suggest.insertMode": "replace",
-
   "terminal.integrated.fontSize": 18,
   "editor.linkedEditing": true,
   "javascript.updateImportsOnFileMove.enabled": "always",
   "window.zoomLevel": 0.5,
+  "apc.electron": {
+    "opacity": 0.95,
+    "transparent": true,
+    "backgroundColor": "#00000000",
+    "vibrancy": "ultra-dark"
+  },
+
   "launch": {},
   "[json]": {},
   "editor.minimap.enabled": false,
   "breadcrumbs.enabled": false,
   "workbench.iconTheme": "material-icon-theme",
   "update.showReleaseNotes": false,
-
   "zenMode.hideLineNumbers": false,
   "editor.lineNumbers": "relative",
   "editor.fontFamily": "'JetbrainsMono NF','MesloLGS NF', monospace",
   "editor.inlineSuggest.fontFamily": "'JetbrainsMono NF',MesloLGS NF', monospace",
   "terminal.integrated.fontFamily": "'JetbrainsMono NF','MesloLGS NF', monospace",
   "editor.fontLigatures": "'calt', 'liga', 'dlig', 'ss01', 'ss02', 'ss03', 'ss04', 'ss05', 'ss06', 'ss07', 'ss08'",
-
   "vim.leader": "<Space>",
   "vim.hlsearch": true,
   "vim.easymotion": true,
@@ -43,13 +47,23 @@
   "vim.normalModeKeyBindingsNonRecursive": [
     // NAVIGATION
     // switch b/w buffers
-    { "before": ["<S-h>"], "commands": [":bprevious"] },
-    { "before": ["<S-l>"], "commands": [":bnext"] },
-
+    {
+      "before": ["<S-h>"],
+      "commands": [":bprevious"]
+    },
+    {
+      "before": ["<S-l>"],
+      "commands": [":bnext"]
+    },
     // splits
-    { "before": ["leader", "v"], "commands": [":vsplit"] },
-    { "before": ["leader", "s"], "commands": [":split"] },
-
+    {
+      "before": ["leader", "v"],
+      "commands": [":vsplit"]
+    },
+    {
+      "before": ["leader", "s"],
+      "commands": [":split"]
+    },
     // panes
     {
       "before": ["<C-h>"],
@@ -71,7 +85,6 @@
       "before": ["<leader>", "u", "r"],
       "commands": [":nohl"]
     },
-
     // Toggle File Explorer with Ctrl+E
     {
       "before": ["<leader>", "e"],
@@ -81,7 +94,6 @@
       "before": ["<leader>", "t"],
       "commands": ["workbench.action.toggleAuxiliaryBar"]
     },
-
     // Toggle Copilot Chat with leader+aa
     // search in buffer as i type like telescope
     {
@@ -103,7 +115,6 @@
       "before": ["<leader>", "g", "h"],
       "commands": ["git.viewFileHistory"]
     },
-
     // NICE TO HAVE
     {
       "before": ["g", "d"],
@@ -121,8 +132,14 @@
       "before": ["<leader>", "b", "d"],
       "commands": [":q"]
     },
-    { "before": ["<leader>", "q"], "commands": [":q!"] },
-    { "before": ["<leader>", "x"], "commands": [":x!"] },
+    {
+      "before": ["<leader>", "q"],
+      "commands": [":q!"]
+    },
+    {
+      "before": ["<leader>", "x"],
+      "commands": [":x!"]
+    },
     {
       "before": ["[", "d"],
       "commands": ["editor.action.marker.prev"]
@@ -140,13 +157,11 @@
       "before": ["<leader>", "r", "n"],
       "commands": ["editor.action.rename"]
     },
-
     // SEARCH
     {
       "before": ["<leader>", "f", "f"],
       "commands": ["workbench.action.quickOpen"]
     },
-
     {
       "before": ["<leader>", "<leader>", "f"],
       "commands": [
@@ -175,7 +190,6 @@
       "before": ["<leader>", "s", "r"],
       "commands": ["workbench.action.openRecent"]
     },
-
     {
       "before": ["K"],
       "commands": ["editor.action.showDefinitionPreviewHover"]
@@ -183,13 +197,28 @@
   ],
   "vim.visualModeKeyBindings": [
     // Stay in visual mode while indenting
-    { "before": ["<"], "commands": ["editor.action.outdentLines"] },
-    { "before": [">"], "commands": ["editor.action.indentLines"] },
+    {
+      "before": ["<"],
+      "commands": ["editor.action.outdentLines"]
+    },
+    {
+      "before": [">"],
+      "commands": ["editor.action.indentLines"]
+    },
     // Move selected lines while staying in visual mode
-    { "before": ["J"], "commands": ["editor.action.moveLinesDownAction"] },
-    { "before": ["K"], "commands": ["editor.action.moveLinesUpAction"] },
+    {
+      "before": ["J"],
+      "commands": ["editor.action.moveLinesDownAction"]
+    },
+    {
+      "before": ["K"],
+      "commands": ["editor.action.moveLinesUpAction"]
+    },
     // toggle comment selection
-    { "before": ["<leader>", "c"], "commands": ["editor.action.commentLine"] }
+    {
+      "before": ["<leader>", "c"],
+      "commands": ["editor.action.commentLine"]
+    }
   ],
   "[typescriptreact]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
@@ -225,5 +254,9 @@
   "inlineChat.finishOnType": true,
   "svg.preview.mode": "svg",
   "github.copilot.nextEditSuggestions.enabled": true,
-  "workbench.sideBar.location": "right"
+  "workbench.sideBar.location": "right",
+  "animations.Install-Method": "Apc Customize UI++",
+  "apc.imports": [
+    "file://${userHome}/.vscode/extensions/brandonkirbyson.vscode-animations-2.0.7/dist/updateHandler.js"
+  ]
 }
