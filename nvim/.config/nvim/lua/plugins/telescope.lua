@@ -53,14 +53,15 @@ return {
       end,
       desc = "Goto Symbol",
     },
-    {
-      "<leader>ss",
-      function()
-        require("telescope.builtin").lsp_dynamic_workspace_symbols({
-          symbols = require("lazyvim.util").config.get_kind_filter(),
-        })
-      end,
-      desc = "Goto Symbol (Workspace)",
-    },
+
+    -- {
+    --   "<leader>ss",
+    --   function()
+    --     require("telescope.builtin").lsp_dynamic_workspace_symbols({
+    --       symbols = require("lazyvim.util").config.get_kind_filter(),
+    --     })
+    --   end,
+    --   desc = "Goto Symbol (Workspace)",
+    -- },
   },
 }
