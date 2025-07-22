@@ -4,11 +4,89 @@ return {
     lazy = false,
     dependencies = {
       "nvim-lua/plenary.nvim",
-      "stevearc/dressing.nvim", -- optional for vim.ui.select
+      "stevearc/dressing.nvim",
+      "mfussenegger/nvim-dap",
+      "rcarriga/nvim-dap-ui",
+      "nvim-neotest/nvim-nio",
     },
     config = function()
-      require("flutter-tools").setup({})
+      require("flutter-tools").setup({
+        flutter_path = "/usr/bin/flutter",
+        flutter_lookup_cmd = nil,
+        fvm = false,
+
+        widget_guides = {
+          enabled = true,
+        },
+
+        closing_tags = {
+          highlight = "ErrorMsg",
+          prefix = "//",
+          enabled = true,
+        },
+
+        dev_log = {
+          enabled = true,
+          notify_errors = false,
+          open_cmd = "tabedit",
+        },
+
+        dev_tools = {
+          autostart = false,
+          auto_open_browser = false,
+        },
+
+        outline = {
+          open_cmd = "30vnew",
+          auto_open = false,
+        },
+
+        lsp = {
+          color = {
+            enabled = true,
+            background = false,
+            background_color = nil,
+            foreground = false,
+            virtual_text = true,
+            virtual_text_str = "■",
+          },
+          settings = {
+            showtodos = true,
+            completefunctioncalls = true,
+            analysisexcludedfolders = {
+              vim.fn.expand("$HOME/.pub-cache"),
+              vim.fn.expand("$HOME/AppData/Local/Pub/Cache"),
+            },
+            renamefileswithclasses = "prompt",
+            updateimportsonrename = true,
+            enablesnippets = true,
+          },
+        },
+
+        debugger = {
+          enabled = false,
+          run_via_dap = false,
+          exception_breakpoints = {},
+          register_configurations = function(paths)
+            require("dap").adapters.dart = {
+              type = "executable",
+              command = "dart",
+              args = { "debug_adapter" },
+            }
+            require("dap").configurations.dart = {
+              {
+                type = "dart",
+                request = "launch",
+                name = "Launch flutter",
+                dartSdkPath = paths.dart_sdk,
+                flutterSdkPath = paths.flutter_sdk,
+                program = "${workspaceFolder}/lib/main.dart",
+                cwd = "${workspaceFolder}",
+              },
+            }
+          end,
+        },
+      })
     end,
   },
-  -- flutter
 }
