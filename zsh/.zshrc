@@ -1,6 +1,3 @@
-# Amazon Q pre block. Keep at the top of this file.
-[[ -f "${HOME}/Library/Application Support/amazon-q/shell/zshrc.pre.zsh" ]] && builtin source "${HOME}/Library/Application Support/amazon-q/shell/zshrc.pre.zsh"
-# Created by newuser for 5.9
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
 # Initialization code that may require console input (password prompts, [y/n]
 # confirmations, etc.) must go above this block; everything else may go below.
@@ -104,6 +101,16 @@ alias fv='nvim $(fd . -H ~ | fzf --algo=v1 -m --preview="bat --color=always {}")
 alias fp='tmux-se'
 alias vps='ssh -i ~/.ssh/contabo galib@149.102.146.246'
 
+# Claude Code aliases
+alias cc='claude'
+alias ccy='claude --dangerously-skip-permissions'  # Yellow mode - skip permissions
+alias ccc='claude --continue'  # Continue most recent conversation
+alias ccr='claude --resume'    # Resume session interactively
+alias ccp='claude -p'          # Print mode - query and exit
+alias ccv='claude --verbose'   # Verbose logging
+alias ccu='claude update'      # Update Claude Code
+alias ccm='claude mcp'         # MCP server configuration
+
 # ADD Env
 
 export PATH="$HOME/dotfiles:$PATH"
@@ -181,13 +188,7 @@ _fzf_comprun() {
 # ---- Zoxide ----
 eval "$(zoxide init --cmd cd zsh)"
 
-# Amazon Q post block. Keep at the bottom of this file.
-[[ -f "${HOME}/Library/Application Support/amazon-q/shell/zshrc.post.zsh" ]] && builtin source "${HOME}/Library/Application Support/amazon-q/shell/zshrc.post.zsh"
 
-# Shopify Hydrogen alias to local projects
-alias h2='$(npm prefix -s)/node_modules/.bin/shopify hydrogen'
-
-## [Completion]
 ## Completion scripts setup. Remove the following line to uninstall
 [[ -f /home/galib/.dart-cli-completion/zsh-config.zsh ]] && . /home/galib/.dart-cli-completion/zsh-config.zsh || true
 ## [/Completion]
