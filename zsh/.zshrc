@@ -197,3 +197,33 @@ export PATH="/home/galib/.shorebird/bin:$PATH"
 
 # bun completions
 [ -s "/home/galib/.bun/_bun" ] && source "/home/galib/.bun/_bun"
+export PATH="$HOME/.shorebird/bin:$PATH"
+
+# Shorebird token conditional activation
+# Function to load Shorebird token only when needed
+load_shorebird_token() {
+    if [[ -z "$SHOREBIRD_TOKEN" ]]; then
+        echo "Loading Shorebird token..."
+        export SHOREBIRD_TOKEN=$(pass show shorebird/token 2>/dev/null || echo "")
+        if [[ -n "$SHOREBIRD_TOKEN" ]]; then
+            echo "✅ Shorebird token loaded for this session"
+        else
+            echo "❌ Failed to load Shorebird token"
+            return 1
+        fi
+    else
+        echo "✅ Shorebird token already loaded"
+    fi
+}
+
+# Alias for easy activation
+alias shorebird-auth='load_shorebird_token'
+
+# Wrapper function for shorebird command that auto-loads token
+shorebird() {
+    if [[ -z "$SHOREBIRD_TOKEN" ]]; then
+        echo "🔐 Shorebird token not loaded. Loading now..."
+        load_shorebird_token || return 1
+    fi
+    command shorebird "$@"
+}

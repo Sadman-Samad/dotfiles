@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Enhanced SSH with file transfer capabilities
+
+if [ $# -eq 0 ]; then
+    echo "Usage: kitty-ssh [user@]host [command]"
+    echo "       kitty-ssh --transfer <file> [user@]host:path"
+    exit 1
+fi
+
+if [ "$1" = "--transfer" ]; then
+    shift
+    file="$1"
+    dest="$2"
+    
+    if [ ! -f "$file" ]; then
+        echo "Error: File '$file' not found"
+        exit 1
+    fi
+    
+    kitty +kitten transfer "$file" "$dest"
+else
+    kitty +kitten ssh "$@"
+fi
