@@ -1,0 +1,32 @@
+# KWin Window Rules Configuration
+# Replace this template with your actual ~/.config/kwinrulesrc file
+
+[1]
+Description=Application settings for alacritty
+clientmachine=localhost
+clientmachinematch=0
+title=Alacritty
+titlematch=1
+types=1
+windowrole=browser
+windowrolematch=1
+wmclass=alacritty Alacritty
+wmclasscomplete=false
+wmclassmatch=1
+
+[2]
+Description=Application settings for konsole
+clientmachine=localhost
+clientmachinematch=0
+title=Konsole
+titlematch=1
+types=1
+windowrole=MainWindow#1
+windowrolematch=1
+wmclass=konsole konsole
+wmclasscomplete=false
+wmclassmatch=1
+
+[General]
+count=2
+rules=1,2

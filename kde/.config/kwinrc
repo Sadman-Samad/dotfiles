@@ -1,0 +1,46 @@
+# KWin Configuration
+# Replace this template with your actual ~/.config/kwinrc file
+
+[Compositing]
+Enabled=true
+HideCursor=true
+OpenGLIsUnsafe=false
+WindowsBlockCompositing=true
+
+[Desktops]
+Id_1=9d006a66-9ba8-4b26-8ad1-bc33e36d98dc
+Id_2=a7eadc73-eeb0-410e-a5e0-d88c5c6b9b31
+Name_1=Desktop 1
+Name_2=Desktop 2
+Number=2
+Rows=1
+
+[Effect-overview]
+BorderActivate=9
+
+[ModifierOnlyShortcuts]
+Meta=org.kde.kglobalaccel,/component/kwin,org.kde.kglobalaccel.Component,invokeShortcut,Overview
+
+[Plugins]
+krohnkiteEnabled=true
+overviewEnabled=true
+
+[TabBox]
+LayoutName=thumbnail_grid
+
+[Tiling]
+padding=4
+
+[Tiling][213239b2-9ed0-56b0-9ced-c24e87a9cb0a]
+tiles={"layoutDirection":"horizontal","tiles":[{"width":0.25},{"width":0.5},{"width":0.25}]}
+
+[Tiling][4b50c2b4-e60b-5e10-89fd-28e6b2b04ade]
+tiles={"layoutDirection":"vertical","tiles":[{"height":0.5},{"height":0.5}]}
+
+[Tiling][8e17fbd7-3d47-52f0-ae2c-88b6c6dd5569]
+tiles={"layoutDirection":"horizontal","tiles":[{"width":0.6666666666666666},{"width":0.3333333333333333}]}
+
+[Windows]
+DelayFocusInterval=0
+FocusPolicy=FocusFollowsMouse
+FocusStealingPreventionLevel=1

@@ -1,0 +1,478 @@
+#!/usr/bin/env bash
+
+# KDE Global Shortcuts Management Script
+# Manage KDE global shortcuts from command line
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+print_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+print_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+print_usage() {
+    echo "KDE Global Shortcuts Manager"
+    echo
+    echo "Usage: $0 <command> [options]"
+    echo
+    echo "Commands:"
+    echo "  list [component]           List all shortcuts or shortcuts for specific component"
+    echo "  set <component> <action> <shortcut>  Set a shortcut"
+    echo "  get <component> <action>   Get current shortcut for action"
+    echo "  remove <component> <action>  Remove/disable a shortcut"
+    echo "  backup [file]              Backup current shortcuts to file"
+    echo "  restore <file>             Restore shortcuts from backup file"
+    echo "  reset [component]          Reset shortcuts to defaults"
+    echo "  reload                     Reload shortcut configuration"
+    echo "  krohnkite                  Show/manage Krohnkite-specific shortcuts"
+    echo
+    echo "Components:"
+    echo "  kwin                       Window management shortcuts"
+    echo "  plasmashell                Plasma desktop shortcuts" 
+    echo "  systemsettings             System settings shortcuts"
+    echo "  krunner                    Application launcher shortcuts"
+    echo "  krohnkite                  Krohnkite tiling shortcuts"
+    echo
+    echo "Examples:"
+    echo "  $0 list kwin                           # List KWin shortcuts"
+    echo "  $0 set kwin \"Window Close\" \"Alt+F4\"   # Set window close shortcut"
+    echo "  $0 get kwin \"Window Close\"             # Get current window close shortcut"
+    echo "  $0 krohnkite                           # Show Krohnkite shortcuts"
+    echo "  $0 backup ~/shortcuts-backup.conf     # Backup all shortcuts"
+    echo "  $0 restore ~/shortcuts-backup.conf    # Restore from backup"
+}
+
+# Check if running KDE
+check_kde() {
+    if [ "$XDG_CURRENT_DESKTOP" != "KDE" ]; then
+        print_warning "Not running KDE Plasma. This script is designed for KDE."
+        return 1
+    fi
+    
+    # Check for required tools
+    if ! command -v kwriteconfig5 &> /dev/null; then
+        print_error "kwriteconfig5 not found. Install kde-cli-tools package."
+        return 1
+    fi
+    
+    if ! command -v kreadconfig5 &> /dev/null; then
+        print_error "kreadconfig5 not found. Install kde-cli-tools package."
+        return 1
+    fi
+    
+    return 0
+}
+
+# List shortcuts
+list_shortcuts() {
+    local component="$1"
+    local config_file="$HOME/.config/kglobalshortcutsrc"
+    
+    if [ ! -f "$config_file" ]; then
+        print_error "Global shortcuts configuration file not found: $config_file"
+        return 1
+    fi
+    
+    if [ -n "$component" ]; then
+        print_info "Shortcuts for component: $component"
+        echo "----------------------------------------"
+        
+        # Read shortcuts for specific component
+        while IFS= read -r line; do
+            if [[ $line =~ ^\[$component\]$ ]]; then
+                # Found the component section
+                while IFS= read -r shortcut_line; do
+                    # Stop if we hit another section
+                    if [[ $shortcut_line =~ ^\[.*\]$ ]]; then
+                        break
+                    fi
+                    
+                    # Skip empty lines and metadata
+                    if [[ -n "$shortcut_line" && ! "$shortcut_line" =~ ^_k_friendly_name ]]; then
+                        # Parse shortcut line: action=keys,default,description
+                        if [[ $shortcut_line =~ ^([^=]+)=([^,]*),([^,]*),(.*)$ ]]; then
+                            local action="${BASH_REMATCH[1]}"
+                            local current="${BASH_REMATCH[2]}"
+                            local default="${BASH_REMATCH[3]}"
+                            local description="${BASH_REMATCH[4]}"
+                            
+                            printf "%-30s %-20s %s\n" "$action" "$current" "$description"
+                        fi
+                    fi
+                done
+                break
+            fi
+        done < "$config_file"
+    else
+        print_info "All global shortcuts by component:"
+        echo "============================================"
+        
+        # List all components
+        grep -E '^\[.*\]$' "$config_file" | sed 's/\[\(.*\)\]/\1/' | while read -r comp; do
+            echo
+            echo "[$comp]"
+            echo "----------------------------------------"
+            
+            # Count shortcuts in this component
+            local count=$(awk "/^\[$comp\]$/,/^\[.*\]$/" "$config_file" | grep -E '^[^_\[].*=' | wc -l)
+            echo "Shortcuts: $count"
+        done
+    fi
+}
+
+# Set a shortcut
+set_shortcut() {
+    local component="$1"
+    local action="$2" 
+    local shortcut="$3"
+    
+    if [ -z "$component" ] || [ -z "$action" ] || [ -z "$shortcut" ]; then
+        print_error "Usage: set <component> <action> <shortcut>"
+        return 1
+    fi
+    
+    print_info "Setting shortcut: $component -> $action = $shortcut"
+    
+    # Get current shortcut configuration
+    local current_config=$(kreadconfig5 --file kglobalshortcutsrc --group "$component" --key "$action" 2>/dev/null || echo "")
+    
+    if [ -n "$current_config" ]; then
+        # Parse existing config: current,default,description
+        IFS=',' read -r current_key default_key description <<< "$current_config"
+        
+        # Set new shortcut while preserving default and description
+        local new_config="$shortcut,$default_key,$description"
+        
+        kwriteconfig5 --file kglobalshortcutsrc --group "$component" --key "$action" "$new_config"
+        
+        print_success "Shortcut updated: $action -> $shortcut"
+    else
+        print_warning "Action '$action' not found in component '$component'"
+        print_info "Creating new shortcut entry"
+        
+        kwriteconfig5 --file kglobalshortcutsrc --group "$component" --key "$action" "$shortcut,none,$action"
+        print_success "New shortcut created: $action -> $shortcut"
+    fi
+    
+    # Reload shortcuts
+    reload_shortcuts
+}
+
+# Get current shortcut
+get_shortcut() {
+    local component="$1"
+    local action="$2"
+    
+    if [ -z "$component" ] || [ -z "$action" ]; then
+        print_error "Usage: get <component> <action>"
+        return 1
+    fi
+    
+    local config=$(kreadconfig5 --file kglobalshortcutsrc --group "$component" --key "$action" 2>/dev/null)
+    
+    if [ -n "$config" ]; then
+        IFS=',' read -r current_key default_key description <<< "$config"
+        echo "Component: $component"
+        echo "Action: $action"
+        echo "Current: $current_key"
+        echo "Default: $default_key" 
+        echo "Description: $description"
+    else
+        print_error "Shortcut not found: $component -> $action"
+        return 1
+    fi
+}
+
+# Remove/disable a shortcut
+remove_shortcut() {
+    local component="$1"
+    local action="$2"
+    
+    if [ -z "$component" ] || [ -z "$action" ]; then
+        print_error "Usage: remove <component> <action>"
+        return 1
+    fi
+    
+    print_info "Removing shortcut: $component -> $action"
+    
+    # Get current configuration
+    local current_config=$(kreadconfig5 --file kglobalshortcutsrc --group "$component" --key "$action" 2>/dev/null)
+    
+    if [ -n "$current_config" ]; then
+        # Parse and set to none
+        IFS=',' read -r current_key default_key description <<< "$current_config"
+        local new_config="none,$default_key,$description"
+        
+        kwriteconfig5 --file kglobalshortcutsrc --group "$component" --key "$action" "$new_config"
+        
+        print_success "Shortcut disabled: $action"
+        reload_shortcuts
+    else
+        print_error "Shortcut not found: $component -> $action"
+        return 1
+    fi
+}
+
+# Backup shortcuts
+backup_shortcuts() {
+    local backup_file="$1"
+    
+    if [ -z "$backup_file" ]; then
+        backup_file="$HOME/kde-shortcuts-backup-$(date +%Y%m%d-%H%M%S).conf"
+    fi
+    
+    local source_file="$HOME/.config/kglobalshortcutsrc"
+    
+    if [ ! -f "$source_file" ]; then
+        print_error "Source shortcuts file not found: $source_file"
+        return 1
+    fi
+    
+    print_info "Backing up shortcuts to: $backup_file"
+    cp "$source_file" "$backup_file"
+    
+    if [ $? -eq 0 ]; then
+        print_success "Shortcuts backed up successfully"
+        print_info "Backup location: $backup_file"
+    else
+        print_error "Failed to create backup"
+        return 1
+    fi
+}
+
+# Restore shortcuts
+restore_shortcuts() {
+    local backup_file="$1"
+    
+    if [ -z "$backup_file" ]; then
+        print_error "Usage: restore <backup-file>"
+        return 1
+    fi
+    
+    if [ ! -f "$backup_file" ]; then
+        print_error "Backup file not found: $backup_file"
+        return 1
+    fi
+    
+    local target_file="$HOME/.config/kglobalshortcutsrc"
+    
+    print_warning "This will overwrite your current shortcuts configuration."
+    read -p "Continue? (y/N): " -n 1 -r
+    echo
+    
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        print_info "Restore cancelled"
+        return 0
+    fi
+    
+    # Create backup of current config
+    cp "$target_file" "$target_file.backup-$(date +%Y%m%d-%H%M%S)"
+    
+    # Restore from backup
+    print_info "Restoring shortcuts from: $backup_file"
+    cp "$backup_file" "$target_file"
+    
+    if [ $? -eq 0 ]; then
+        print_success "Shortcuts restored successfully"
+        reload_shortcuts
+    else
+        print_error "Failed to restore shortcuts"
+        return 1
+    fi
+}
+
+# Reset shortcuts to defaults
+reset_shortcuts() {
+    local component="$1"
+    
+    print_warning "This will reset shortcuts to their default values."
+    
+    if [ -n "$component" ]; then
+        print_warning "Component: $component"
+    else
+        print_warning "All components will be reset!"
+    fi
+    
+    read -p "Continue? (y/N): " -n 1 -r
+    echo
+    
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        print_info "Reset cancelled"
+        return 0
+    fi
+    
+    # Implementation would require parsing defaults and resetting
+    # For now, provide manual instructions
+    print_info "To reset shortcuts:"
+    echo "1. Go to System Settings → Shortcuts"
+    echo "2. Select 'Global Shortcuts'"
+    if [ -n "$component" ]; then
+        echo "3. Select component: $component"
+    fi
+    echo "4. Click 'Defaults' button"
+    echo
+    print_info "Alternatively, you can delete the configuration file:"
+    echo "rm ~/.config/kglobalshortcutsrc"
+    echo "# Then restart KDE"
+}
+
+# Reload shortcuts configuration
+reload_shortcuts() {
+    print_info "Reloading shortcuts configuration..."
+    
+    if command -v qdbus &> /dev/null; then
+        # Reload global shortcuts
+        if qdbus org.kde.kglobalaccel /kglobalaccel reloadConfig 2>/dev/null; then
+            print_success "Global shortcuts reloaded"
+        else
+            print_warning "Could not reload global shortcuts via DBus"
+        fi
+        
+        # Reconfigure KWin
+        if qdbus org.kde.KWin /KWin reconfigure 2>/dev/null; then
+            print_success "KWin reconfigured"
+        else
+            print_warning "Could not reconfigure KWin"
+        fi
+    else
+        print_warning "qdbus not available. You may need to log out and back in."
+    fi
+}
+
+# Show Krohnkite shortcuts
+show_krohnkite_shortcuts() {
+    echo "Krohnkite Tiling Manager Shortcuts"
+    echo "======================================="
+    echo
+    
+    # Check if Krohnkite is installed
+    if [ ! -d "$HOME/.local/share/kwin/scripts/krohnkite" ]; then
+        print_warning "Krohnkite is not installed"
+        echo "Install with: yay -S kwin-scripts-krohnkite-git"
+        return 1
+    fi
+    
+    print_info "Current Krohnkite shortcuts:"
+    echo
+    
+    # Default Krohnkite shortcuts
+    local krohnkite_shortcuts=(
+        "Toggle Tile:Meta+F"
+        "Toggle Float:Meta+Shift+F"
+        "Set Master:Meta+Return"
+        "Focus Down:Meta+J"
+        "Focus Up:Meta+K"
+        "Focus Left:Meta+H"
+        "Focus Right:Meta+L"
+        "Move Down:Meta+Shift+J"
+        "Move Up:Meta+Shift+K"
+        "Move Left:Meta+Shift+H"
+        "Move Right:Meta+Shift+L"
+        "Increase Master:Meta+Ctrl+L"
+        "Decrease Master:Meta+Ctrl+H"
+        "Increase Master Count:Meta+Ctrl+J"
+        "Decrease Master Count:Meta+Ctrl+K"
+        "Next Layout:Meta+\\"
+        "Previous Layout:Meta+|"
+        "Rotate:Meta+R"
+        "Rotate Part:Meta+Shift+R"
+    )
+    
+    printf "%-25s %s\n" "Action" "Shortcut"
+    echo "----------------------------------------"
+    
+    for shortcut_info in "${krohnkite_shortcuts[@]}"; do
+        IFS=':' read -r action shortcut <<< "$shortcut_info"
+        printf "%-25s %s\n" "$action" "$shortcut"
+    done
+    
+    echo
+    print_info "To modify Krohnkite shortcuts:"
+    echo "1. Use: $0 set kwin \"<action>\" \"<shortcut>\""
+    echo "2. Or go to System Settings → Shortcuts → Global Shortcuts → KWin"
+    echo "3. Look for Krohnkite actions in the list"
+    echo
+    
+    # Show current status
+    if list_shortcuts "kwin" | grep -i krohnkite &> /dev/null; then
+        print_success "Krohnkite shortcuts are configured"
+    else
+        print_warning "Krohnkite shortcuts may not be active"
+        echo "Run: ./setup-krohnkite to ensure proper configuration"
+    fi
+}
+
+# Main function
+main() {
+    local command="$1"
+    
+    if [ -z "$command" ]; then
+        print_usage
+        return 0
+    fi
+    
+    # Check KDE environment
+    if ! check_kde; then
+        return 1
+    fi
+    
+    case "$command" in
+        "list")
+            list_shortcuts "$2"
+            ;;
+        "set")
+            set_shortcut "$2" "$3" "$4"
+            ;;
+        "get")
+            get_shortcut "$2" "$3"
+            ;;
+        "remove"|"disable")
+            remove_shortcut "$2" "$3"
+            ;;
+        "backup")
+            backup_shortcuts "$2"
+            ;;
+        "restore")
+            restore_shortcuts "$2"
+            ;;
+        "reset")
+            reset_shortcuts "$2"
+            ;;
+        "reload")
+            reload_shortcuts
+            ;;
+        "krohnkite")
+            show_krohnkite_shortcuts
+            ;;
+        "help"|"-h"|"--help")
+            print_usage
+            ;;
+        *)
+            print_error "Unknown command: $command"
+            echo
+            print_usage
+            return 1
+            ;;
+    esac
+}
+
+# Run main function with all arguments
+main "$@"

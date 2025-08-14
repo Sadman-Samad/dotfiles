@@ -66,6 +66,13 @@ stow -D -t ~ <package-name> # Remove symlinks
 - JetbrainsMono Nerd Font
 - Optimized for transparency and performance
 
+**kde/**: KDE Plasma desktop environment configuration
+- KWin window manager settings with Krohnkite tiling support
+- Global shortcuts and window management rules
+- Plasma desktop layout and panel configuration
+- KRunner application launcher settings
+- Automated Krohnkite setup script in `bin/setup-krohnkite`
+
 ### Development Workflow Commands
 
 **Tmux Session Management:**
@@ -79,6 +86,27 @@ tmux-se <session-name>  # Create or attach to named session
 - `Ctrl+T`: File search
 - `Alt+C`: Directory navigation
 
+**KDE/Krohnkite Tiling (when running KDE Plasma):**
+```bash
+# Setup script for Krohnkite tiling manager
+bin/setup-krohnkite  # Configures Krohnkite after installation
+
+# Shortcut management tools
+bin/kde-shortcuts list kwin  # List window management shortcuts
+bin/kde-shortcuts set kwin "Window Close" "Alt+Q"  # Set shortcut
+bin/apply-shortcuts-preset krohnkite-default  # Apply preset shortcuts
+```
+
+**Krohnkite Default Shortcuts:**
+- `Meta+F`: Toggle tiling for current window
+- `Meta+Shift+F`: Toggle floating for current window
+- `Meta+Return`: Set window as master
+- `Meta+J/K`: Move focus between windows
+- `Meta+Shift+J/K`: Move windows around
+- `Meta+H/L`: Resize master area
+- `Meta+\`: Switch to next layout
+- `Meta+R`: Rotate windows
+
 ### Configuration Patterns
 
 **Neovim Plugin Management:**
@@ -90,6 +118,7 @@ tmux-se <session-name>  # Create or attach to named session
 - Hyprland uses include statements for organization
 - Zsh configuration sources multiple files for different concerns
 - VS Code settings organized by feature categories
+- KDE configurations separated by component (kwin, plasma, shortcuts)
 
 **Cross-Application Integration:**
 - Shared clipboard configuration across tmux, nvim, and system
@@ -101,6 +130,32 @@ tmux-se <session-name>  # Create or attach to named session
 **Languages:** TypeScript, Go, Dart/Flutter, Python, Lua, Shell
 **Tools:** Git, Docker, Node.js, npm/yarn/pnpm, Flutter SDK
 **Terminal:** Modern CLI tools (fd, rg, bat, exa, zoxide, fzf)
+**Desktop:** KDE Plasma with Krohnkite tiling, Hyprland (Wayland compositor)
+
+### KDE Plasma Setup Instructions
+
+**Quick Setup (Capture Current Config):**
+1. Capture your current setup: `bin/sync-kde-config --commit`
+2. Install on new system: `./install.sh` (automatically applies your config)
+
+**Manual Setup:**
+1. Install Krohnkite: `yay -S kwin-scripts-krohnkite-git`
+2. Capture current config: `bin/capture-kde-config`
+3. Apply KDE configuration: `stow kde`
+4. Run setup script: `bin/setup-krohnkite`
+5. Apply your shortcuts: `bin/apply-shortcuts-preset current-system`
+
+**Manual Configuration Steps:**
+- Replace template files in `kde/.config/` with your actual configuration files
+- Customize keyboard shortcuts in System Settings → Shortcuts → Global Shortcuts
+- Adjust Krohnkite settings in System Settings → Window Management → KWin Scripts
+
+**Important KDE Configuration Files:**
+- `kwinrc`: Main KWin configuration including Krohnkite settings
+- `kglobalshortcutsrc`: Global keyboard shortcuts
+- `kwinrulesrc`: Window rules for specific applications
+- `plasma-org.kde.plasma.desktop-appletsrc`: Desktop layout and widgets
+- `krunnerrc`: Application launcher settings
 
 ### File Organization Conventions
 
@@ -108,3 +163,4 @@ tmux-se <session-name>  # Create or attach to named session
 - Binary scripts in `bin/` directory
 - Package-specific configurations maintain upstream directory structure
 - Lock files and generated content preserved for reproducibility
+- KDE configurations stored in `kde/.config/` matching `~/.config/` structure
