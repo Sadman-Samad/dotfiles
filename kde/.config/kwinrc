@@ -1,46 +1,59 @@
-# KWin Configuration
-# Replace this template with your actual ~/.config/kwinrc file
-
-[Compositing]
-Enabled=true
-HideCursor=true
-OpenGLIsUnsafe=false
-WindowsBlockCompositing=true
+[Activities][LastVirtualDesktop]
+73c7e0d3-7853-4955-9ac0-8e47ce895376=79d5430f-cdac-4f5d-bb8e-4683dd5e7cda
 
 [Desktops]
-Id_1=9d006a66-9ba8-4b26-8ad1-bc33e36d98dc
-Id_2=a7eadc73-eeb0-410e-a5e0-d88c5c6b9b31
-Name_1=Desktop 1
-Name_2=Desktop 2
-Number=2
+Id_1=1f21c31b-2c9f-4a9f-ab88-2797ba16b65a
+Id_2=79d5430f-cdac-4f5d-bb8e-4683dd5e7cda
+Id_3=3c108d38-ad03-4c41-a41d-f74f93c842a6
+Id_4=50a9aa62-bbe2-4525-927d-82b680b85e85
+Id_5=11f49717-b312-47b2-b52c-d8daa93696d2
+Id_6=5e05b078-3149-4db7-ae58-d98f4546bb0f
+Number=6
 Rows=1
 
-[Effect-overview]
-BorderActivate=9
-
-[ModifierOnlyShortcuts]
-Meta=org.kde.kglobalaccel,/component/kwin,org.kde.kglobalaccel.Component,invokeShortcut,Overview
-
 [Plugins]
+desktopchangeosdEnabled=true
 krohnkiteEnabled=true
-overviewEnabled=true
-
-[TabBox]
-LayoutName=thumbnail_grid
+minimizeallEnabled=false
 
 [Tiling]
 padding=4
 
-[Tiling][213239b2-9ed0-56b0-9ced-c24e87a9cb0a]
+[Tiling][11f49717-b312-47b2-b52c-d8daa93696d2][2890e272-945f-4bc3-ada3-3fed5a936b38]
 tiles={"layoutDirection":"horizontal","tiles":[{"width":0.25},{"width":0.5},{"width":0.25}]}
 
-[Tiling][4b50c2b4-e60b-5e10-89fd-28e6b2b04ade]
-tiles={"layoutDirection":"vertical","tiles":[{"height":0.5},{"height":0.5}]}
+[Tiling][11f49717-b312-47b2-b52c-d8daa93696d2][43f11120-f940-4b31-b232-6315ffba2615]
+tiles={"layoutDirection":"horizontal","tiles":[{"width":0.25},{"width":0.5},{"width":0.25}]}
 
-[Tiling][8e17fbd7-3d47-52f0-ae2c-88b6c6dd5569]
-tiles={"layoutDirection":"horizontal","tiles":[{"width":0.6666666666666666},{"width":0.3333333333333333}]}
+[Tiling][1f21c31b-2c9f-4a9f-ab88-2797ba16b65a][2890e272-945f-4bc3-ada3-3fed5a936b38]
+tiles={"layoutDirection":"horizontal","tiles":[{"width":0.25},{"width":0.5},{"width":0.25}]}
 
-[Windows]
-DelayFocusInterval=0
-FocusPolicy=FocusFollowsMouse
-FocusStealingPreventionLevel=1
+[Tiling][1f21c31b-2c9f-4a9f-ab88-2797ba16b65a][43f11120-f940-4b31-b232-6315ffba2615]
+tiles={"layoutDirection":"horizontal","tiles":[{"width":0.25},{"width":0.5},{"width":0.25}]}
+
+[Tiling][3c108d38-ad03-4c41-a41d-f74f93c842a6][2890e272-945f-4bc3-ada3-3fed5a936b38]
+tiles={"layoutDirection":"horizontal","tiles":[{"width":0.25},{"width":0.5},{"width":0.25}]}
+
+[Tiling][3c108d38-ad03-4c41-a41d-f74f93c842a6][43f11120-f940-4b31-b232-6315ffba2615]
+tiles={"layoutDirection":"horizontal","tiles":[{"width":0.25},{"width":0.5},{"width":0.25}]}
+
+[Tiling][50a9aa62-bbe2-4525-927d-82b680b85e85][2890e272-945f-4bc3-ada3-3fed5a936b38]
+tiles={"layoutDirection":"horizontal","tiles":[{"width":0.25},{"width":0.5},{"width":0.25}]}
+
+[Tiling][50a9aa62-bbe2-4525-927d-82b680b85e85][43f11120-f940-4b31-b232-6315ffba2615]
+tiles={"layoutDirection":"horizontal","tiles":[{"width":0.25},{"width":0.5},{"width":0.25}]}
+
+[Tiling][5e05b078-3149-4db7-ae58-d98f4546bb0f][2890e272-945f-4bc3-ada3-3fed5a936b38]
+tiles={"layoutDirection":"horizontal","tiles":[{"width":0.25},{"width":0.5},{"width":0.25}]}
+
+[Tiling][5e05b078-3149-4db7-ae58-d98f4546bb0f][43f11120-f940-4b31-b232-6315ffba2615]
+tiles={"layoutDirection":"horizontal","tiles":[{"width":0.25},{"width":0.5},{"width":0.25}]}
+
+[Tiling][79d5430f-cdac-4f5d-bb8e-4683dd5e7cda][2890e272-945f-4bc3-ada3-3fed5a936b38]
+tiles={"layoutDirection":"horizontal","tiles":[{"width":0.25},{"width":0.5},{"width":0.25}]}
+
+[Tiling][79d5430f-cdac-4f5d-bb8e-4683dd5e7cda][43f11120-f940-4b31-b232-6315ffba2615]
+tiles={"layoutDirection":"horizontal","tiles":[{"width":0.25},{"width":0.5},{"width":0.25}]}
+
+[Xwayland]
+Scale=1

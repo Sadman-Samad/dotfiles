@@ -67,14 +67,15 @@ check_kde() {
         return 1
     fi
     
-    # Check for required tools
-    if ! command -v kwriteconfig5 &> /dev/null; then
-        print_error "kwriteconfig5 not found. Install kde-cli-tools package."
-        return 1
-    fi
-    
-    if ! command -v kreadconfig5 &> /dev/null; then
-        print_error "kreadconfig5 not found. Install kde-cli-tools package."
+    # Check for required tools (try both KDE 5 and 6 versions)
+    if command -v kwriteconfig6 &> /dev/null; then
+        KWRITECONFIG="kwriteconfig6"
+        KREADCONFIG="kreadconfig6"
+    elif command -v kwriteconfig5 &> /dev/null; then
+        KWRITECONFIG="kwriteconfig5"
+        KREADCONFIG="kreadconfig5"
+    else
+        print_error "kwriteconfig not found. Install kde-cli-tools package."
         return 1
     fi
     
@@ -152,7 +153,7 @@ set_shortcut() {
     print_info "Setting shortcut: $component -> $action = $shortcut"
     
     # Get current shortcut configuration
-    local current_config=$(kreadconfig5 --file kglobalshortcutsrc --group "$component" --key "$action" 2>/dev/null || echo "")
+    local current_config=$($KREADCONFIG --file kglobalshortcutsrc --group "$component" --key "$action" 2>/dev/null || echo "")
     
     if [ -n "$current_config" ]; then
         # Parse existing config: current,default,description
@@ -161,14 +162,14 @@ set_shortcut() {
         # Set new shortcut while preserving default and description
         local new_config="$shortcut,$default_key,$description"
         
-        kwriteconfig5 --file kglobalshortcutsrc --group "$component" --key "$action" "$new_config"
+        $KWRITECONFIG --file kglobalshortcutsrc --group "$component" --key "$action" "$new_config"
         
         print_success "Shortcut updated: $action -> $shortcut"
     else
         print_warning "Action '$action' not found in component '$component'"
         print_info "Creating new shortcut entry"
         
-        kwriteconfig5 --file kglobalshortcutsrc --group "$component" --key "$action" "$shortcut,none,$action"
+        $KWRITECONFIG --file kglobalshortcutsrc --group "$component" --key "$action" "$shortcut,none,$action"
         print_success "New shortcut created: $action -> $shortcut"
     fi
     
@@ -186,7 +187,7 @@ get_shortcut() {
         return 1
     fi
     
-    local config=$(kreadconfig5 --file kglobalshortcutsrc --group "$component" --key "$action" 2>/dev/null)
+    local config=$($KREADCONFIG --file kglobalshortcutsrc --group "$component" --key "$action" 2>/dev/null)
     
     if [ -n "$config" ]; then
         IFS=',' read -r current_key default_key description <<< "$config"
@@ -214,14 +215,14 @@ remove_shortcut() {
     print_info "Removing shortcut: $component -> $action"
     
     # Get current configuration
-    local current_config=$(kreadconfig5 --file kglobalshortcutsrc --group "$component" --key "$action" 2>/dev/null)
+    local current_config=$($KREADCONFIG --file kglobalshortcutsrc --group "$component" --key "$action" 2>/dev/null)
     
     if [ -n "$current_config" ]; then
         # Parse and set to none
         IFS=',' read -r current_key default_key description <<< "$current_config"
         local new_config="none,$default_key,$description"
         
-        kwriteconfig5 --file kglobalshortcutsrc --group "$component" --key "$action" "$new_config"
+        $KWRITECONFIG --file kglobalshortcutsrc --group "$component" --key "$action" "$new_config"
         
         print_success "Shortcut disabled: $action"
         reload_shortcuts
@@ -338,16 +339,24 @@ reset_shortcuts() {
 reload_shortcuts() {
     print_info "Reloading shortcuts configuration..."
     
-    if command -v qdbus &> /dev/null; then
+    # Try both qdbus6 and qdbus for KDE 5/6 compatibility
+    local qdbus_cmd=""
+    if command -v qdbus6 &> /dev/null; then
+        qdbus_cmd="qdbus6"
+    elif command -v qdbus &> /dev/null; then
+        qdbus_cmd="qdbus"
+    fi
+    
+    if [ -n "$qdbus_cmd" ]; then
         # Reload global shortcuts
-        if qdbus org.kde.kglobalaccel /kglobalaccel reloadConfig 2>/dev/null; then
+        if $qdbus_cmd org.kde.kglobalaccel /kglobalaccel reloadConfig 2>/dev/null; then
             print_success "Global shortcuts reloaded"
         else
             print_warning "Could not reload global shortcuts via DBus"
         fi
         
         # Reconfigure KWin
-        if qdbus org.kde.KWin /KWin reconfigure 2>/dev/null; then
+        if $qdbus_cmd org.kde.KWin /KWin reconfigure 2>/dev/null; then
             print_success "KWin reconfigured"
         else
             print_warning "Could not reconfigure KWin"
