@@ -48,7 +48,7 @@ return {
       "<leader>sS",
       function()
         require("telescope.builtin").lsp_document_symbols({
-          symbols = LazyVim.config.get_kind_filter(),
+          symbols = require("lazyvim.util").get_kind_filter(),
         })
       end,
       desc = "Goto Symbol",
