@@ -1,0 +1,77 @@
+{
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.config/claude/notify-claude.sh input_needed"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "error|failed|exception|Error|Failed|Exception",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.config/claude/notify-claude.sh error_occurred 'Tool execution failed'"
+          }
+        ]
+      },
+      {
+        "matcher": "success|completed|done|Success|Completed|Done",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.config/claude/notify-claude.sh process_complete 'Tool execution completed'"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.config/claude/notify-claude.sh tool_complete 'Tool finished executing'"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.config/claude/notify-claude.sh process_complete 'Claude has finished processing'"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.config/claude/notify-claude.sh process_complete 'Subagent task completed'"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.config/claude/notify-claude.sh session_end"
+          }
+        ]
+      }
+    ]
+  }
+}
