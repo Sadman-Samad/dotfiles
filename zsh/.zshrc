@@ -101,6 +101,7 @@ alias fv='nvim $(fd . -H ~ | fzf --algo=v1 -m --preview="bat --color=always {}")
 alias fp='tmux-se'
 alias vps='ssh -i ~/.ssh/contabo galib@149.102.146.246'
 alias kube_vps='ssh -i ~/.ssh/kube_rsa faisal@13.126.197.249'
+alias local_vps='ssh -i ~/.ssh/kube_rsa root@vm.softcellbd.net -p 6553'
 
 # Claude Code aliases
 alias cc='claude'
@@ -232,3 +233,5 @@ shorebird() {
 #THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
 export SDKMAN_DIR="$HOME/.sdkman"
 [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
+
+. "$HOME/.local/bin/env"
