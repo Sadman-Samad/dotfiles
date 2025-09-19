@@ -99,7 +99,7 @@ alias t='tmux-se'
 alias c='clear'
 alias fv='nvim $(fd . -H ~ | fzf --algo=v1 -m --preview="bat --color=always {}")'
 alias fp='tmux-se'
-alias vps='ssh -i ~/.ssh/contabo galib@149.102.146.246'
+alias vps='ssh -i ~/.ssh/id_rsa admin@147.93.153.135'
 alias kube_vps='ssh -i ~/.ssh/kube_rsa faisal@13.126.197.249'
 alias local_vps='ssh -i ~/.ssh/kube_rsa root@vm.softcellbd.net -p 65535'
 
@@ -118,6 +118,7 @@ alias ccm='claude mcp'         # MCP server configuration
 export PATH="$HOME/dotfiles:$PATH"
 export PATH="$HOME/.local/script:$PATH"
 export PATH="$HOME/development/flutter/bin:$PATH"
+export PATH="$PATH:$HOME/.config/composer/vendor/bin"
 # bun
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
