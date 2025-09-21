@@ -119,7 +119,7 @@ immutability=1
 plugin=org.kde.plasma.devicenotifier
 
 [Containments][28][Applets][32][Applets][35][Configuration]
-PreloadWeight=55
+PreloadWeight=65
 
 [Containments][28][Applets][32][Applets][36]
 immutability=1
@@ -194,7 +194,7 @@ immutability=1
 plugin=org.kde.plasma.brightness
 
 [Containments][28][Applets][32][Applets][48][Configuration]
-PreloadWeight=95
+PreloadWeight=100
 
 [Containments][28][Applets][32][Applets][49]
 immutability=1
