@@ -31,6 +31,12 @@ zinit light zsh-users/zsh-completions
 zinit light zsh-users/zsh-autosuggestions
 zinit light Aloxaf/fzf-tab
 
+# Essential additions
+zinit light hlissner/zsh-autopair
+zinit light zdharma-continuum/history-search-multi-word
+zinit light MichaelAquilina/zsh-you-should-use
+zinit light wfxr/forgit
+
 # Add in snippets
 # Basic
 zinit snippet OMZP::git
@@ -55,6 +61,11 @@ zinit snippet OMZP::postgres
 zinit snippet OMZP::node
 zinit snippet OMZP::npm
 zinit snippet OMZP::yarn
+
+# Development tools
+zinit snippet OMZP::extract
+zinit snippet OMZP::docker
+zinit snippet OMZP::docker-compose
 # Load completions
 autoload -Uz compinit && compinit
 
