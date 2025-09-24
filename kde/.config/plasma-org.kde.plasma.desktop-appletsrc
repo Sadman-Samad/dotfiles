@@ -187,7 +187,7 @@ immutability=1
 plugin=org.kde.plasma.battery
 
 [Containments][28][Applets][32][Applets][47][Configuration]
-PreloadWeight=70
+PreloadWeight=75
 
 [Containments][28][Applets][32][Applets][48]
 immutability=1
@@ -242,7 +242,7 @@ immutability=1
 plugin=org.kde.kdeconnect
 
 [Containments][28][Applets][53][Configuration]
-PreloadWeight=80
+PreloadWeight=85
 popupHeight=400
 popupWidth=560
 
