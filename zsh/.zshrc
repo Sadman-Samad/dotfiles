@@ -35,7 +35,6 @@ zinit light Aloxaf/fzf-tab
 zinit light hlissner/zsh-autopair
 zinit light zdharma-continuum/history-search-multi-word
 zinit light MichaelAquilina/zsh-you-should-use
-zinit light wfxr/forgit
 
 # Add in snippets
 # Basic
@@ -116,7 +115,7 @@ alias local_vps='ssh -i ~/.ssh/kube_rsa root@vm.softcellbd.net -p 65535'
 
 # Claude Code aliases
 alias cc='claude'
-alias ccy='claude --dangerously-skip-permissions'  # Yellow mode - skip permissions
+alias ccy='claude --resume --dangerously-skip-permissions'  # Yellow mode - skip permissions
 alias ccc='claude --continue'  # Continue most recent conversation
 alias ccr='claude --resume'    # Resume session interactively
 alias ccp='claude -p'          # Print mode - query and exit
