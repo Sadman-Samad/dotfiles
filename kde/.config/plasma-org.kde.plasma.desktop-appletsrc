@@ -160,7 +160,7 @@ immutability=1
 plugin=org.kde.kdeconnect
 
 [Containments][28][Applets][32][Applets][43][Configuration]
-PreloadWeight=60
+PreloadWeight=70
 
 [Containments][28][Applets][32][Applets][44]
 immutability=1
@@ -187,7 +187,7 @@ immutability=1
 plugin=org.kde.plasma.battery
 
 [Containments][28][Applets][32][Applets][47][Configuration]
-PreloadWeight=75
+PreloadWeight=80
 
 [Containments][28][Applets][32][Applets][48]
 immutability=1
@@ -215,7 +215,7 @@ immutability=1
 plugin=org.kde.plasma.mediacontroller
 
 [Containments][28][Applets][32][Applets][51][Configuration]
-PreloadWeight=5
+PreloadWeight=0
 
 [Containments][28][Applets][32][Configuration]
 PreloadWeight=100
@@ -242,7 +242,7 @@ immutability=1
 plugin=org.kde.kdeconnect
 
 [Containments][28][Applets][53][Configuration]
-PreloadWeight=85
+PreloadWeight=95
 popupHeight=400
 popupWidth=560
 
