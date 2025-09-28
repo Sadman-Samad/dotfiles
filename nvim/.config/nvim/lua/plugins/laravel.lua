@@ -7,7 +7,6 @@ return {
   },
   ft = { "php", "blade" },
   keys = {
-    { "<leader>L", "", desc = "+Laravel" },
     { "<leader>Lc", "<cmd>Composer<cr>", desc = "Composer Commands" },
     { "<leader>Lm", "<cmd>LaravelMake<cr>", desc = "Laravel Make" },
     { "<leader>Lr", "<cmd>LaravelRoute<cr>", desc = "Laravel Routes" },
