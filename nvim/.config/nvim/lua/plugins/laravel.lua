@@ -120,7 +120,7 @@ return {
       },
     })
 
-    -- Override the find_controllers function to search for classes extending Controller
+    -- Override the find_controllers function using ripgrep for high performance
     local navigate = require("laravel.navigate")
     local original_find_controllers = navigate.find_controllers
 
@@ -136,123 +136,66 @@ return {
 
       local controllers = {}
 
-      -- Directories to exclude from search
-      local exclude_patterns = {
-        "vendor/",
-        "node_modules/",
-        "storage/",
-        "bootstrap/cache/",
-        "public/",
-        ".git/",
-        "tests/",
-        "database/",
-        "resources/lang/",
-        "resources/js/",
-        "resources/css/",
-        "resources/sass/",
-        "config/",
-        ".env",
-        "artisan",
-      }
+      -- Use ripgrep to find all classes extending Controller
+      local rg_command = string.format(
+        "rg --type php --no-heading --line-number --column " ..
+        "--glob '!vendor/**' --glob '!node_modules/**' --glob '!storage/**' " ..
+        "--glob '!bootstrap/cache/**' --glob '!public/**' --glob '!tests/**' " ..
+        "--glob '!database/**' --glob '!resources/lang/**' --glob '!resources/js/**' " ..
+        "--glob '!resources/css/**' --glob '!resources/sass/**' --glob '!config/**' " ..
+        "'class\\s+(\\w+)\\s+extends\\s+.*Controller' '%s' 2>/dev/null",
+        root
+      )
 
-      -- Function to check if path should be excluded
-      local function should_exclude(path)
-        local rel_path = path:gsub("^" .. vim.pesc(root) .. "/?", "")
-        for _, pattern in ipairs(exclude_patterns) do
-          if rel_path:match("^" .. vim.pesc(pattern)) then
-            return true
-          end
-        end
-        return false
+      local handle = io.popen(rg_command)
+      if not handle then
+        return {}
       end
 
-      -- Function to extract namespace from PHP file
-      local function extract_namespace_and_class(file_path)
-        local file = io.open(file_path, "r")
-        if not file then
-          return nil, nil
+      local rg_results = {}
+      for line in handle:lines() do
+        local file_path, line_num, col, content = line:match("^([^:]+):(%d+):(%d+):(.*)$")
+        if file_path and content then
+          -- Extract class name from the matched line
+          local class_name = content:match("class%s+(%w+)%s+extends%s+.*Controller")
+          if class_name then
+            rg_results[file_path] = class_name
+          end
         end
+      end
+      handle:close()
 
+      -- For each file found by ripgrep, extract the namespace
+      for file_path, class_name in pairs(rg_results) do
         local namespace = nil
-        local class_name = nil
-        local found_class = false
+        local file = io.open(file_path, "r")
 
-        -- Read file line by line for better performance on large files
-        for line in file:lines() do
-          -- Skip comments and empty lines
-          if not line:match("^%s*//") and not line:match("^%s*%*") and not line:match("^%s*$") then
-            -- Extract namespace
-            if not namespace then
-              local ns = line:match("namespace%s+([^;]+)")
-              if ns then
-                namespace = ns:gsub("%s+", "")
-              end
+        if file then
+          -- Only read until we find the namespace (much faster)
+          for line in file:lines() do
+            local ns = line:match("namespace%s+([^;]+)")
+            if ns then
+              namespace = ns:gsub("%s+", "")
+              break
             end
-
-            -- Extract class name and check if it extends Controller
-            if not found_class then
-              -- Match various Controller extension patterns
-              local cn = line:match("class%s+(%w+)%s+extends%s+[%w\\]*Controller")
-                or line:match("class%s+(%w+)%s+extends%s+Controller")
-                or line:match("class%s+(%w+)%s+extends%s+BaseController")
-                or line:match("class%s+(%w+)%s+extends%s+\\?Illuminate\\Routing\\Controller")
-
-              if cn then
-                class_name = cn
-                found_class = true
-              end
-            end
-
-            -- Break early if we found both
-            if namespace and found_class then
+            -- Stop reading after reasonable number of lines if no namespace found
+            if file:seek() > 2048 then -- First 2KB should contain namespace
               break
             end
           end
+          file:close()
         end
 
-        file:close()
-        return namespace, class_name
-      end
-
-      -- Recursively scan directory for PHP files that extend Controller
-      local function scan_directory(dir)
-        if vim.fn.isdirectory(dir) ~= 1 then
-          return
-        end
-        if should_exclude(dir) then
-          return
-        end
-
-        local items = vim.fn.readdir(dir)
-        if not items then
-          return
-        end
-
-        for _, item in ipairs(items) do
-          local full_path = dir .. "/" .. item
-
-          if vim.fn.isdirectory(full_path) == 1 then
-            -- Recursively scan subdirectories
-            scan_directory(full_path)
-          elseif item:match("%.php$") then
-            local namespace, class_name = extract_namespace_and_class(full_path)
-
-            if class_name and namespace then
-              -- Build full class path
-              local full_namespace = namespace .. "\\" .. class_name
-
-              controllers[#controllers + 1] = {
-                name = class_name,
-                namespace = full_namespace,
-                path = full_path,
-              }
-            end
-          end
+        -- Build controller entry
+        if namespace then
+          local full_namespace = namespace .. "\\" .. class_name
+          controllers[#controllers + 1] = {
+            name = class_name,
+            namespace = full_namespace,
+            path = file_path,
+          }
         end
       end
-
-      -- Start scanning from project root
-      scan_directory(root)
 
       -- Sort controllers by name for better UX
       table.sort(controllers, function(a, b)
