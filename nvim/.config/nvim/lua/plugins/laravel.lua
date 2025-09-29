@@ -53,6 +53,79 @@ return {
       desc = "Find Middleware",
     },
 
+    -- Database and schema navigation
+    {
+      "<leader>Lfg",
+      function()
+        local schema = require("laravel.schema")
+        local migrations = schema.find_migrations()
+        if #migrations == 0 then
+          require("laravel.ui").warn("No migrations found")
+          return
+        end
+
+        local items = vim.tbl_map(function(mig)
+          return string.format("[migration] %s (%s)", mig.name, mig.timestamp)
+        end, migrations)
+
+        require("laravel.ui").select(items, {
+          prompt = "Select migration:",
+          kind = "laravel_migration",
+        }, function(choice)
+          if choice then
+            for _, mig in ipairs(migrations) do
+              local display = string.format("[migration] %s (%s)", mig.name, mig.timestamp)
+              if display == choice then
+                if vim.fn.filereadable(mig.path) == 1 then
+                  vim.cmd("edit " .. vim.fn.fnameescape(mig.path))
+                else
+                  require("laravel.ui").error("Migration file not found: " .. mig.path)
+                end
+                break
+              end
+            end
+          end
+        end)
+      end,
+      desc = "Find Migrations",
+    },
+
+    {
+      "<leader>Lfd",
+      function()
+        local schema = require("laravel.schema")
+        local seeders = schema.find_seeders()
+        if #seeders == 0 then
+          require("laravel.ui").warn("No seeders found")
+          return
+        end
+
+        local items = vim.tbl_map(function(seeder)
+          return string.format("[seeder] %s", seeder.name)
+        end, seeders)
+
+        require("laravel.ui").select(items, {
+          prompt = "Select seeder:",
+          kind = "laravel_seeder",
+        }, function(choice)
+          if choice then
+            for _, seeder in ipairs(seeders) do
+              local display = string.format("[seeder] %s", seeder.name)
+              if display == choice then
+                if vim.fn.filereadable(seeder.path) == 1 then
+                  vim.cmd("edit " .. vim.fn.fnameescape(seeder.path))
+                else
+                  require("laravel.ui").error("Seeder file not found: " .. seeder.path)
+                end
+                break
+              end
+            end
+          end
+        end)
+      end,
+      desc = "Find Seeders",
+    },
+
     -- Unified Laravel architecture browser
     {
       "<leader>Lfa",
@@ -60,6 +133,7 @@ return {
         local ui = require("laravel.ui")
         local navigate = require("laravel.navigate")
 
+        local schema = require("laravel.schema")
         local component_types = {
           { name = "Controllers", finder = navigate.find_controllers },
           { name = "Models", finder = navigate.find_models },
@@ -68,6 +142,8 @@ return {
           { name = "Events", finder = navigate.find_events },
           { name = "Listeners", finder = navigate.find_listeners },
           { name = "Middleware", finder = navigate.find_middleware },
+          { name = "Migrations", finder = schema.find_migrations },
+          { name = "Seeders", finder = schema.find_seeders },
         }
 
         ui.select(
@@ -89,7 +165,14 @@ return {
                   end
 
                   local items = vim.tbl_map(function(comp)
-                    return string.format("[%s] %s", comp.type or "class", comp.name)
+                    -- Handle different component types with appropriate display format
+                    if comp.timestamp then -- Migration
+                      return string.format("[migration] %s (%s)", comp.name, comp.timestamp)
+                    elseif comp.namespace and comp.namespace:match("Seeders?") then -- Seeder
+                      return string.format("[seeder] %s", comp.name)
+                    else -- Regular class components
+                      return string.format("[%s] %s", comp.type or "class", comp.name)
+                    end
                   end, components)
 
                   ui.select(items, {
@@ -98,7 +181,16 @@ return {
                   }, function(selected)
                     if selected then
                       for _, comp in ipairs(components) do
-                        local display = string.format("[%s] %s", comp.type or "class", comp.name)
+                        -- Generate display string using same logic as items mapping
+                        local display
+                        if comp.timestamp then -- Migration
+                          display = string.format("[migration] %s (%s)", comp.name, comp.timestamp)
+                        elseif comp.namespace and comp.namespace:match("Seeders?") then -- Seeder
+                          display = string.format("[seeder] %s", comp.name)
+                        else -- Regular class components
+                          display = string.format("[%s] %s", comp.type or "class", comp.name)
+                        end
+
                         if display == selected then
                           -- Safety check: ensure path exists and is a file
                           if vim.fn.filereadable(comp.path) == 1 then
@@ -792,6 +884,150 @@ return {
         -- Re-throw other errors
         error(err)
       end
+    end
+
+    -- Override schema analysis functions to support module migrations
+    local schema = require("laravel.schema")
+    local original_find_migrations = schema.find_migrations
+
+    -- Enhanced find_migrations using ripgrep to find all migration files across modules
+    schema.find_migrations = function()
+      local function get_project_root()
+        return _G.laravel_nvim and _G.laravel_nvim.project_root
+      end
+
+      local root = get_project_root()
+      if not root then
+        return {}
+      end
+
+      local migrations = {}
+
+      -- Define migration directories for different module structures
+      local migration_paths = {
+        -- Standard Laravel
+        root .. '/database/migrations',
+        -- nwidart/laravel-modules pattern
+        root .. '/Modules/*/Database/migrations',
+        root .. '/Modules/*/database/migrations',
+        -- Alternative module structures
+        root .. '/modules/*/Database/migrations',
+        root .. '/modules/*/database/migrations',
+        root .. '/app/Modules/*/Database/migrations',
+        root .. '/app/Modules/*/database/migrations',
+      }
+
+      -- Use ripgrep to find all PHP files that look like migrations
+      local rg_command = string.format(
+        "rg --type php --files --glob '*_*.php' " ..
+        "--glob '!vendor/**' --glob '!node_modules/**' --glob '!storage/**' " ..
+        "'%s' 2>/dev/null | grep -E '(migrations?|Migration)' | head -200",
+        root
+      )
+
+      local handle = io.popen(rg_command)
+      if handle then
+        for file in handle:lines() do
+          -- Check if this looks like a migration file by filename pattern
+          local name = vim.fn.fnamemodify(file, ':t:r')
+          local timestamp, migration_name = name:match('^(%d%d%d%d_%d%d_%d%d_%d+)_(.+)$')
+
+          if timestamp and migration_name then
+            -- Also check directory path to confirm it's in a migrations directory
+            if file:match('/migrations?/') or file:match('/Migrations?/') then
+              table.insert(migrations, {
+                name = migration_name,
+                full_name = name,
+                timestamp = timestamp,
+                path = file
+              })
+            end
+          end
+        end
+        handle:close()
+      end
+
+      -- Fallback to directory scanning for standard locations if ripgrep finds nothing
+      if #migrations == 0 then
+        for _, dir in ipairs(migration_paths) do
+          if not dir:match('%*') and vim.fn.isdirectory(dir) == 1 then
+            local files = vim.fn.glob(dir .. '/*.php', false, true)
+            for _, file in ipairs(files) do
+              local name = vim.fn.fnamemodify(file, ':t:r')
+              local timestamp, migration_name = name:match('^(%d%d%d%d_%d%d_%d%d_%d+)_(.+)$')
+
+              if timestamp and migration_name then
+                table.insert(migrations, {
+                  name = migration_name,
+                  full_name = name,
+                  timestamp = timestamp,
+                  path = file
+                })
+              end
+            end
+          end
+        end
+      end
+
+      -- Sort migrations by timestamp for proper execution order
+      table.sort(migrations, function(a, b)
+        return a.timestamp < b.timestamp
+      end)
+
+      return migrations
+    end
+
+    -- Add function to find seeders across modules
+    schema.find_seeders = function()
+      local root = get_project_root()
+      if not root then
+        return {}
+      end
+
+      local seeders = {}
+
+      -- Use ripgrep to find seeder files across modules
+      local rg_command = string.format(
+        "rg --type php --no-heading --line-number " ..
+        "--glob '!vendor/**' --glob '!node_modules/**' " ..
+        "'class\\s+(\\w+)\\s+extends\\s+.*Seeder' '%s' 2>/dev/null",
+        root
+      )
+
+      local handle = io.popen(rg_command)
+      if handle then
+        for line in handle:lines() do
+          local file_path, line_num, content = line:match("^([^:]+):(%d+):(.*)$")
+          if file_path and content then
+            local seeder_name = content:match("class%s+(%w+)%s+extends%s+.*Seeder")
+            if seeder_name then
+              -- Extract namespace
+              local namespace = nil
+              local file = io.open(file_path, "r")
+              if file then
+                for file_line in file:lines() do
+                  local ns = file_line:match("namespace%s+([^;]+)")
+                  if ns then
+                    namespace = ns:gsub("%s+", "")
+                    break
+                  end
+                  if file:seek() > 1024 then break end
+                end
+                file:close()
+              end
+
+              table.insert(seeders, {
+                name = seeder_name,
+                namespace = namespace or "Database\\Seeders",
+                path = file_path
+              })
+            end
+          end
+        end
+        handle:close()
+      end
+
+      return seeders
     end
   end,
 }
