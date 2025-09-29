@@ -105,6 +105,97 @@ return {
         enabled = true,
         auto_detect = true,
       },
+      -- Enhanced settings for module architecture
+      artisan = {
+        environment = vim.fn.getcwd(),
+        executable = "./vendor/bin/sail artisan",
+        options = {},
+      },
+      route_info = {
+        enable = true,
+        position = "top",
+        middlewares = true,
+        method = true,
+        uri = true,
+      },
     })
+
+    -- Override the find_controllers function to support module architecture
+    local navigate = require("laravel.navigate")
+    local original_find_controllers = navigate.find_controllers
+
+    navigate.find_controllers = function()
+      local function get_project_root()
+        return _G.laravel_nvim and _G.laravel_nvim.project_root
+      end
+
+      local root = get_project_root()
+      if not root then return {} end
+
+      local controllers = {}
+
+      -- Define controller paths for different module structures
+      local controller_paths = {
+        -- Standard Laravel
+        { path = root .. '/app/Http/Controllers', namespace = 'App\\Http\\Controllers' },
+        -- nwidart/laravel-modules
+        { path = root .. '/Modules', pattern = 'Modules/*/Http/Controllers', namespace_pattern = 'Modules\\%s\\Http\\Controllers' },
+        -- Alternative module structure
+        { path = root .. '/modules', pattern = 'modules/*/Http/Controllers', namespace_pattern = 'Modules\\%s\\Http\\Controllers' },
+        -- Custom module structure
+        { path = root .. '/app/Modules', pattern = 'app/Modules/*/Controllers', namespace_pattern = 'App\\Modules\\%s\\Controllers' },
+      }
+
+      local function scan_directory(dir, namespace)
+        if vim.fn.isdirectory(dir) ~= 1 then return end
+
+        local items = vim.fn.readdir(dir)
+        if not items then return end
+
+        for _, item in ipairs(items) do
+          local full_path = dir .. '/' .. item
+
+          if vim.fn.isdirectory(full_path) == 1 then
+            -- Recursively scan subdirectories
+            scan_directory(full_path, namespace .. '\\' .. item)
+          elseif item:match('%.php$') and item:match('Controller%.php$') then
+            local class_name = item:gsub('%.php$', '')
+            controllers[#controllers + 1] = {
+              name = class_name,
+              namespace = namespace .. '\\' .. class_name,
+              path = full_path,
+            }
+          end
+        end
+      end
+
+      -- Scan standard Laravel controllers
+      if vim.fn.isdirectory(controller_paths[1].path) == 1 then
+        scan_directory(controller_paths[1].path, controller_paths[1].namespace)
+      end
+
+      -- Scan module controllers
+      for i = 2, #controller_paths do
+        local base_path = controller_paths[i].path
+        if vim.fn.isdirectory(base_path) == 1 then
+          local modules = vim.fn.readdir(base_path)
+          if modules then
+            for _, module in ipairs(modules) do
+              local module_controllers_path = base_path .. '/' .. module .. '/Http/Controllers'
+              if controller_paths[i].pattern:match('app/Modules') then
+                module_controllers_path = base_path .. '/' .. module .. '/Controllers'
+              end
+
+              if vim.fn.isdirectory(module_controllers_path) == 1 then
+                local namespace = string.format(controller_paths[i].namespace_pattern, module)
+                scan_directory(module_controllers_path, namespace)
+              end
+            end
+          end
+        end
+      end
+
+      return controllers
+    end
   end,
 }
