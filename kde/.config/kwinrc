@@ -144,3 +144,6 @@ tiles={"layoutDirection":"horizontal","tiles":[{"width":0.25},{"width":0.5},{"wi
 
 [Tiling][79d5430f-cdac-4f5d-bb8e-4683dd5e7cda][e1351183-42c8-4db9-96cd-bdcebb399296]
 tiles={"layoutDirection":"horizontal","tiles":[{"width":0.25},{"width":0.5},{"width":0.25}]}
+
+[org.kde.kdecoration2]
+theme=__aurorae__svg__WhiteSur-dark
