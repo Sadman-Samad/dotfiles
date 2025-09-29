@@ -13,6 +13,68 @@ return {
     { "<leader>Ld", "<cmd>LaravelDumps<cr>", desc = "Laravel Dumps" },
     { "<leader>Li", "<cmd>LaravelIdeHelper all<cr>", desc = "Laravel IDE Helper" },
     { "<leader>Lgd", "<cmd>LaravelGoto<cr>", desc = "Laravel Goto" },
+
+    -- Navigation keybindings (ripgrep-powered)
+    { "<leader>Lfc", "<cmd>LaravelController<cr>", desc = "Find Controllers" },
+    { "<leader>Lfm", "<cmd>LaravelModel<cr>", desc = "Find Models" },
+    { "<leader>Lfs", function() require("laravel.navigate").goto_service() end, desc = "Find Services" },
+    { "<leader>Lfj", function() require("laravel.navigate").goto_job() end, desc = "Find Jobs" },
+    { "<leader>Lfe", function() require("laravel.navigate").goto_event() end, desc = "Find Events" },
+    { "<leader>Lfl", function() require("laravel.navigate").goto_listener() end, desc = "Find Listeners" },
+    { "<leader>Lfx", function() require("laravel.navigate").goto_middleware() end, desc = "Find Middleware" },
+
+    -- Unified Laravel architecture browser
+    { "<leader>Lfa", function()
+        local ui = require("laravel.ui")
+        local navigate = require("laravel.navigate")
+
+        local component_types = {
+          { name = "Controllers", finder = navigate.find_controllers },
+          { name = "Models", finder = navigate.find_models },
+          { name = "Services", finder = navigate.find_services },
+          { name = "Jobs", finder = navigate.find_jobs },
+          { name = "Events", finder = navigate.find_events },
+          { name = "Listeners", finder = navigate.find_listeners },
+          { name = "Middleware", finder = navigate.find_middleware },
+        }
+
+        ui.select(vim.tbl_map(function(ct) return ct.name end, component_types), {
+          prompt = "Select component type:",
+          kind = "laravel_architecture",
+        }, function(choice)
+          if choice then
+            for _, ct in ipairs(component_types) do
+              if ct.name == choice then
+                local components = ct.finder()
+                if #components == 0 then
+                  ui.warn("No " .. choice:lower() .. " found")
+                  return
+                end
+
+                local items = vim.tbl_map(function(comp)
+                  return string.format("[%s] %s", comp.type or "class", comp.name)
+                end, components)
+
+                ui.select(items, {
+                  prompt = "Select " .. choice:sub(1, -2):lower() .. ":",
+                  kind = "laravel_" .. choice:lower(),
+                }, function(selected)
+                  if selected then
+                    for _, comp in ipairs(components) do
+                      local display = string.format("[%s] %s", comp.type or "class", comp.name)
+                      if display == selected then
+                        vim.cmd("edit " .. comp.path)
+                        break
+                      end
+                    end
+                  end
+                end)
+                break
+              end
+            end
+          end
+        end)
+      end, desc = "Laravel Architecture Browser" },
     {
       "<leader>La",
       function()
@@ -120,89 +182,256 @@ return {
       },
     })
 
-    -- Override the find_controllers function using ripgrep for high performance
+    -- Override Laravel navigation functions using ripgrep for high performance
     local navigate = require("laravel.navigate")
+
+    -- Store original functions
     local original_find_controllers = navigate.find_controllers
+    local original_find_models = navigate.find_models
 
-    navigate.find_controllers = function()
-      local function get_project_root()
-        return _G.laravel_nvim and _G.laravel_nvim.project_root
-      end
+    -- Common function to create ripgrep-powered class finder
+    local function create_ripgrep_finder(class_patterns, exclude_patterns)
+      return function()
+        local function get_project_root()
+          return _G.laravel_nvim and _G.laravel_nvim.project_root
+        end
 
-      local root = get_project_root()
-      if not root then
-        return {}
-      end
+        local root = get_project_root()
+        if not root then
+          return {}
+        end
 
-      local controllers = {}
+        local components = {}
+        local base_excludes = {
+          "vendor/**", "node_modules/**", "storage/**", "bootstrap/cache/**",
+          "public/**", "tests/**", "database/**", "resources/lang/**",
+          "resources/js/**", "resources/css/**", "resources/sass/**", "config/**"
+        }
 
-      -- Use ripgrep to find all classes extending Controller
-      local rg_command = string.format(
-        "rg --type php --no-heading --line-number --column " ..
-        "--glob '!vendor/**' --glob '!node_modules/**' --glob '!storage/**' " ..
-        "--glob '!bootstrap/cache/**' --glob '!public/**' --glob '!tests/**' " ..
-        "--glob '!database/**' --glob '!resources/lang/**' --glob '!resources/js/**' " ..
-        "--glob '!resources/css/**' --glob '!resources/sass/**' --glob '!config/**' " ..
-        "'class\\s+(\\w+)\\s+extends\\s+.*Controller' '%s' 2>/dev/null",
-        root
-      )
-
-      local handle = io.popen(rg_command)
-      if not handle then
-        return {}
-      end
-
-      local rg_results = {}
-      for line in handle:lines() do
-        local file_path, line_num, col, content = line:match("^([^:]+):(%d+):(%d+):(.*)$")
-        if file_path and content then
-          -- Extract class name from the matched line
-          local class_name = content:match("class%s+(%w+)%s+extends%s+.*Controller")
-          if class_name then
-            rg_results[file_path] = class_name
+        -- Add custom excludes
+        if exclude_patterns then
+          for _, pattern in ipairs(exclude_patterns) do
+            table.insert(base_excludes, pattern)
           end
         end
-      end
-      handle:close()
 
-      -- For each file found by ripgrep, extract the namespace
-      for file_path, class_name in pairs(rg_results) do
-        local namespace = nil
-        local file = io.open(file_path, "r")
+        -- Build glob exclusions
+        local glob_excludes = ""
+        for _, pattern in ipairs(base_excludes) do
+          glob_excludes = glob_excludes .. "--glob '!" .. pattern .. "' "
+        end
 
-        if file then
-          -- Only read until we find the namespace (much faster)
-          for line in file:lines() do
-            local ns = line:match("namespace%s+([^;]+)")
-            if ns then
-              namespace = ns:gsub("%s+", "")
-              break
+        -- Try each pattern
+        for _, pattern_info in ipairs(class_patterns) do
+          local rg_command = string.format(
+            "rg --type php --no-heading --line-number --column %s'%s' '%s' 2>/dev/null",
+            glob_excludes,
+            pattern_info.pattern,
+            root
+          )
+
+          local handle = io.popen(rg_command)
+          if handle then
+            for line in handle:lines() do
+              local file_path, line_num, col, content = line:match("^([^:]+):(%d+):(%d+):(.*)$")
+              if file_path and content then
+                local class_name = content:match(pattern_info.extract)
+                if class_name then
+                  -- Extract namespace
+                  local namespace = nil
+                  local file = io.open(file_path, "r")
+                  if file then
+                    for file_line in file:lines() do
+                      local ns = file_line:match("namespace%s+([^;]+)")
+                      if ns then
+                        namespace = ns:gsub("%s+", "")
+                        break
+                      end
+                      if file:seek() > 2048 then break end
+                    end
+                    file:close()
+                  end
+
+                  if namespace then
+                    local full_namespace = namespace .. "\\" .. class_name
+                    components[#components + 1] = {
+                      name = class_name,
+                      namespace = full_namespace,
+                      path = file_path,
+                      type = pattern_info.type or "class",
+                    }
+                  end
+                end
+              end
             end
-            -- Stop reading after reasonable number of lines if no namespace found
-            if file:seek() > 2048 then -- First 2KB should contain namespace
-              break
-            end
+            handle:close()
           end
-          file:close()
         end
 
-        -- Build controller entry
-        if namespace then
-          local full_namespace = namespace .. "\\" .. class_name
-          controllers[#controllers + 1] = {
-            name = class_name,
-            namespace = full_namespace,
-            path = file_path,
-          }
+        -- Remove duplicates and sort
+        local seen = {}
+        local unique_components = {}
+        for _, component in ipairs(components) do
+          local key = component.namespace
+          if not seen[key] then
+            seen[key] = true
+            unique_components[#unique_components + 1] = component
+          end
         end
+
+        table.sort(unique_components, function(a, b)
+          return a.name < b.name
+        end)
+
+        return unique_components
       end
-
-      -- Sort controllers by name for better UX
-      table.sort(controllers, function(a, b)
-        return a.name < b.name
-      end)
-
-      return controllers
     end
+
+    -- Override find_controllers with ripgrep
+    navigate.find_controllers = create_ripgrep_finder({
+      {
+        pattern = "class\\s+(\\w+)\\s+extends\\s+.*Controller",
+        extract = "class%s+(%w+)%s+extends%s+.*Controller",
+        type = "controller"
+      }
+    })
+
+    -- Override find_models with ripgrep
+    navigate.find_models = create_ripgrep_finder({
+      {
+        pattern = "class\\s+(\\w+)\\s+extends\\s+Model",
+        extract = "class%s+(%w+)%s+extends%s+Model",
+        type = "model"
+      },
+      {
+        pattern = "class\\s+(\\w+)\\s+extends\\s+.*Model",
+        extract = "class%s+(%w+)%s+extends%s+.*Model",
+        type = "model"
+      },
+      {
+        pattern = "use\\s+Illuminate\\\\Database\\\\Eloquent\\\\Model;.*class\\s+(\\w+)",
+        extract = "class%s+(%w+)",
+        type = "model"
+      }
+    })
+
+    -- Add new function to find Services
+    navigate.find_services = create_ripgrep_finder({
+      {
+        pattern = "class\\s+(\\w+Service)\\s*\\{",
+        extract = "class%s+(%w+Service)",
+        type = "service"
+      },
+      {
+        pattern = "class\\s+(\\w+)\\s+extends\\s+.*Service",
+        extract = "class%s+(%w+)%s+extends%s+.*Service",
+        type = "service"
+      }
+    })
+
+    -- Add new function to find Jobs
+    navigate.find_jobs = create_ripgrep_finder({
+      {
+        pattern = "class\\s+(\\w+)\\s+implements\\s+ShouldQueue",
+        extract = "class%s+(%w+)%s+implements%s+ShouldQueue",
+        type = "job"
+      },
+      {
+        pattern = "class\\s+(\\w+)\\s+extends\\s+.*Job",
+        extract = "class%s+(%w+)%s+extends%s+.*Job",
+        type = "job"
+      }
+    })
+
+    -- Add new function to find Events
+    navigate.find_events = create_ripgrep_finder({
+      {
+        pattern = "class\\s+(\\w+)\\s*\\{.*use\\s+Dispatchable",
+        extract = "class%s+(%w+)",
+        type = "event"
+      },
+      {
+        pattern = "class\\s+(\\w+)\\s+extends\\s+.*Event",
+        extract = "class%s+(%w+)%s+extends%s+.*Event",
+        type = "event"
+      }
+    })
+
+    -- Add new function to find Listeners
+    navigate.find_listeners = create_ripgrep_finder({
+      {
+        pattern = "class\\s+(\\w+)\\s*\\{.*public\\s+function\\s+handle",
+        extract = "class%s+(%w+)",
+        type = "listener"
+      },
+      {
+        pattern = "class\\s+(\\w+Listener)\\s*\\{",
+        extract = "class%s+(%w+Listener)",
+        type = "listener"
+      }
+    })
+
+    -- Add new function to find Middleware
+    navigate.find_middleware = create_ripgrep_finder({
+      {
+        pattern = "class\\s+(\\w+)\\s*\\{.*public\\s+function\\s+handle.*Request.*next",
+        extract = "class%s+(%w+)",
+        type = "middleware"
+      },
+      {
+        pattern = "class\\s+(\\w+Middleware)\\s*\\{",
+        extract = "class%s+(%w+Middleware)",
+        type = "middleware"
+      }
+    })
+
+    -- Add goto functions for new component types
+    local function create_goto_function(finder_func, component_type)
+      return function(name)
+        if not name or name == "" then
+          local components = finder_func()
+          if #components == 0 then
+            require("laravel.ui").warn("No " .. component_type .. " found")
+            return
+          end
+
+          local items = vim.tbl_map(function(comp) return comp.name end, components)
+          require("laravel.ui").select(items, {
+            prompt = "Select " .. component_type .. ":",
+            kind = "laravel_" .. component_type,
+          }, function(choice)
+            if choice then
+              for _, comp in ipairs(components) do
+                if comp.name == choice then
+                  vim.cmd("edit " .. comp.path)
+                  break
+                end
+              end
+            end
+          end)
+        else
+          local components = finder_func()
+          local found = nil
+          for _, comp in ipairs(components) do
+            if comp.name:lower():match(name:lower()) then
+              found = comp
+              break
+            end
+          end
+
+          if found then
+            vim.cmd("edit " .. found.path)
+          else
+            require("laravel.ui").error(component_type:gsub("^%l", string.upper) .. " not found: " .. name)
+          end
+        end
+      end
+    end
+
+    navigate.goto_service = create_goto_function(navigate.find_services, "service")
+    navigate.goto_job = create_goto_function(navigate.find_jobs, "job")
+    navigate.goto_event = create_goto_function(navigate.find_events, "event")
+    navigate.goto_listener = create_goto_function(navigate.find_listeners, "listener")
+    navigate.goto_middleware = create_goto_function(navigate.find_middleware, "middleware")
   end,
 }
