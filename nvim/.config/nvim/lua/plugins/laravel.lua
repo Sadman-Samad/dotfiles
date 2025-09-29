@@ -17,14 +17,46 @@ return {
     -- Navigation keybindings (ripgrep-powered)
     { "<leader>Lfc", "<cmd>LaravelController<cr>", desc = "Find Controllers" },
     { "<leader>Lfm", "<cmd>LaravelModel<cr>", desc = "Find Models" },
-    { "<leader>Lfs", function() require("laravel.navigate").goto_service() end, desc = "Find Services" },
-    { "<leader>Lfj", function() require("laravel.navigate").goto_job() end, desc = "Find Jobs" },
-    { "<leader>Lfe", function() require("laravel.navigate").goto_event() end, desc = "Find Events" },
-    { "<leader>Lfl", function() require("laravel.navigate").goto_listener() end, desc = "Find Listeners" },
-    { "<leader>Lfx", function() require("laravel.navigate").goto_middleware() end, desc = "Find Middleware" },
+    {
+      "<leader>Lfs",
+      function()
+        require("laravel.navigate").goto_service()
+      end,
+      desc = "Find Services",
+    },
+    {
+      "<leader>Lfj",
+      function()
+        require("laravel.navigate").goto_job()
+      end,
+      desc = "Find Jobs",
+    },
+    {
+      "<leader>Lfe",
+      function()
+        require("laravel.navigate").goto_event()
+      end,
+      desc = "Find Events",
+    },
+    {
+      "<leader>Lfl",
+      function()
+        require("laravel.navigate").goto_listener()
+      end,
+      desc = "Find Listeners",
+    },
+    {
+      "<leader>Lfx",
+      function()
+        require("laravel.navigate").goto_middleware()
+      end,
+      desc = "Find Middleware",
+    },
 
     -- Unified Laravel architecture browser
-    { "<leader>Lfa", function()
+    {
+      "<leader>Lfa",
+      function()
         local ui = require("laravel.ui")
         local navigate = require("laravel.navigate")
 
@@ -38,43 +70,51 @@ return {
           { name = "Middleware", finder = navigate.find_middleware },
         }
 
-        ui.select(vim.tbl_map(function(ct) return ct.name end, component_types), {
-          prompt = "Select component type:",
-          kind = "laravel_architecture",
-        }, function(choice)
-          if choice then
-            for _, ct in ipairs(component_types) do
-              if ct.name == choice then
-                local components = ct.finder()
-                if #components == 0 then
-                  ui.warn("No " .. choice:lower() .. " found")
-                  return
-                end
+        ui.select(
+          vim.tbl_map(function(ct)
+            return ct.name
+          end, component_types),
+          {
+            prompt = "Select component type:",
+            kind = "laravel_architecture",
+          },
+          function(choice)
+            if choice then
+              for _, ct in ipairs(component_types) do
+                if ct.name == choice then
+                  local components = ct.finder()
+                  if #components == 0 then
+                    ui.warn("No " .. choice:lower() .. " found")
+                    return
+                  end
 
-                local items = vim.tbl_map(function(comp)
-                  return string.format("[%s] %s", comp.type or "class", comp.name)
-                end, components)
+                  local items = vim.tbl_map(function(comp)
+                    return string.format("[%s] %s", comp.type or "class", comp.name)
+                  end, components)
 
-                ui.select(items, {
-                  prompt = "Select " .. choice:sub(1, -2):lower() .. ":",
-                  kind = "laravel_" .. choice:lower(),
-                }, function(selected)
-                  if selected then
-                    for _, comp in ipairs(components) do
-                      local display = string.format("[%s] %s", comp.type or "class", comp.name)
-                      if display == selected then
-                        vim.cmd("edit " .. comp.path)
-                        break
+                  ui.select(items, {
+                    prompt = "Select " .. choice:sub(1, -2):lower() .. ":",
+                    kind = "laravel_" .. choice:lower(),
+                  }, function(selected)
+                    if selected then
+                      for _, comp in ipairs(components) do
+                        local display = string.format("[%s] %s", comp.type or "class", comp.name)
+                        if display == selected then
+                          vim.cmd("edit " .. comp.path)
+                          break
+                        end
                       end
                     end
-                  end
-                end)
-                break
+                  end)
+                  break
+                end
               end
             end
           end
-        end)
-      end, desc = "Laravel Architecture Browser" },
+        )
+      end,
+      desc = "Laravel Architecture Browser",
+    },
     {
       "<leader>La",
       function()
@@ -203,9 +243,18 @@ return {
 
         local components = {}
         local base_excludes = {
-          "vendor/**", "node_modules/**", "storage/**", "bootstrap/cache/**",
-          "public/**", "tests/**", "database/**", "resources/lang/**",
-          "resources/js/**", "resources/css/**", "resources/sass/**", "config/**"
+          "vendor/**",
+          "node_modules/**",
+          "storage/**",
+          "bootstrap/cache/**",
+          "public/**",
+          "tests/**",
+          "database/**",
+          "resources/lang/**",
+          "resources/js/**",
+          "resources/css/**",
+          "resources/sass/**",
+          "config/**",
         }
 
         -- Add custom excludes
@@ -247,7 +296,9 @@ return {
                         namespace = ns:gsub("%s+", "")
                         break
                       end
-                      if file:seek() > 2048 then break end
+                      if file:seek() > 2048 then
+                        break
+                      end
                     end
                     file:close()
                   end
@@ -292,8 +343,8 @@ return {
       {
         pattern = "class\\s+(\\w+)\\s+extends\\s+.*Controller",
         extract = "class%s+(%w+)%s+extends%s+.*Controller",
-        type = "controller"
-      }
+        type = "controller",
+      },
     })
 
     -- Override find_models with ripgrep
@@ -301,18 +352,18 @@ return {
       {
         pattern = "class\\s+(\\w+)\\s+extends\\s+Model",
         extract = "class%s+(%w+)%s+extends%s+Model",
-        type = "model"
+        type = "model",
       },
       {
         pattern = "class\\s+(\\w+)\\s+extends\\s+.*Model",
         extract = "class%s+(%w+)%s+extends%s+.*Model",
-        type = "model"
+        type = "model",
       },
       {
         pattern = "use\\s+Illuminate\\\\Database\\\\Eloquent\\\\Model;.*class\\s+(\\w+)",
         extract = "class%s+(%w+)",
-        type = "model"
-      }
+        type = "model",
+      },
     })
 
     -- Add new function to find Services
@@ -320,13 +371,13 @@ return {
       {
         pattern = "class\\s+(\\w+Service)\\s*\\{",
         extract = "class%s+(%w+Service)",
-        type = "service"
+        type = "service",
       },
       {
         pattern = "class\\s+(\\w+)\\s+extends\\s+.*Service",
         extract = "class%s+(%w+)%s+extends%s+.*Service",
-        type = "service"
-      }
+        type = "service",
+      },
     })
 
     -- Add new function to find Jobs
@@ -334,13 +385,13 @@ return {
       {
         pattern = "class\\s+(\\w+)\\s+implements\\s+ShouldQueue",
         extract = "class%s+(%w+)%s+implements%s+ShouldQueue",
-        type = "job"
+        type = "job",
       },
       {
         pattern = "class\\s+(\\w+)\\s+extends\\s+.*Job",
         extract = "class%s+(%w+)%s+extends%s+.*Job",
-        type = "job"
-      }
+        type = "job",
+      },
     })
 
     -- Add new function to find Events
@@ -348,13 +399,13 @@ return {
       {
         pattern = "class\\s+(\\w+)\\s*\\{.*use\\s+Dispatchable",
         extract = "class%s+(%w+)",
-        type = "event"
+        type = "event",
       },
       {
         pattern = "class\\s+(\\w+)\\s+extends\\s+.*Event",
         extract = "class%s+(%w+)%s+extends%s+.*Event",
-        type = "event"
-      }
+        type = "event",
+      },
     })
 
     -- Add new function to find Listeners
@@ -362,13 +413,13 @@ return {
       {
         pattern = "class\\s+(\\w+)\\s*\\{.*public\\s+function\\s+handle",
         extract = "class%s+(%w+)",
-        type = "listener"
+        type = "listener",
       },
       {
         pattern = "class\\s+(\\w+Listener)\\s*\\{",
         extract = "class%s+(%w+Listener)",
-        type = "listener"
-      }
+        type = "listener",
+      },
     })
 
     -- Add new function to find Middleware
@@ -376,13 +427,13 @@ return {
       {
         pattern = "class\\s+(\\w+)\\s*\\{.*public\\s+function\\s+handle.*Request.*next",
         extract = "class%s+(%w+)",
-        type = "middleware"
+        type = "middleware",
       },
       {
         pattern = "class\\s+(\\w+Middleware)\\s*\\{",
         extract = "class%s+(%w+Middleware)",
-        type = "middleware"
-      }
+        type = "middleware",
+      },
     })
 
     -- Add goto functions for new component types
@@ -395,7 +446,9 @@ return {
             return
           end
 
-          local items = vim.tbl_map(function(comp) return comp.name end, components)
+          local items = vim.tbl_map(function(comp)
+            return comp.name
+          end, components)
           require("laravel.ui").select(items, {
             prompt = "Select " .. component_type .. ":",
             kind = "laravel_" .. component_type,
@@ -433,5 +486,274 @@ return {
     navigate.goto_event = create_goto_function(navigate.find_events, "event")
     navigate.goto_listener = create_goto_function(navigate.find_listeners, "listener")
     navigate.goto_middleware = create_goto_function(navigate.find_middleware, "middleware")
+
+    -- Override architecture analysis functions to use our ripgrep-powered finders
+    local architecture = require("laravel.architecture")
+
+    -- Store original functions
+    local original_analyze_controllers = architecture.analyze_controllers
+    local original_analyze_models = architecture.analyze_models
+
+    -- Enhanced analyze_controllers using our ripgrep finder
+    architecture.analyze_controllers = function()
+      local controllers = {}
+      local controller_list = navigate.find_controllers()
+
+      for _, controller in ipairs(controller_list) do
+        local controller_info = {
+          name = controller.name,
+          namespace = controller.namespace,
+          path = controller.path,
+          methods = {},
+          dependencies = {},
+          routes = {},
+          services = {},
+        }
+
+        -- Parse file to extract methods and dependencies
+        local file = io.open(controller.path, 'r')
+        if file then
+          local content = file:read('*a')
+          file:close()
+
+          -- Extract public methods
+          for method in content:gmatch('public%s+function%s+(%w+)%s*%(') do
+            if method ~= '__construct' then
+              table.insert(controller_info.methods, method)
+            end
+          end
+
+          -- Extract dependencies from constructor
+          local constructor = content:match('public%s+function%s+__construct%s*%([^)]*%)')
+          if constructor then
+            for dep in constructor:gmatch('(%w+)%s+%$') do
+              table.insert(controller_info.dependencies, dep)
+            end
+          end
+
+          -- Extract service usage
+          for service in content:gmatch('$this%->([%w_]+)') do
+            if not vim.tbl_contains(controller_info.services, service) then
+              table.insert(controller_info.services, service)
+            end
+          end
+        end
+
+        controllers[controller.name] = controller_info
+      end
+
+      return controllers
+    end
+
+    -- Enhanced analyze_models using our ripgrep finder
+    architecture.analyze_models = function()
+      local models = {}
+      local model_list = navigate.find_models()
+
+      for _, model in ipairs(model_list) do
+        local model_info = {
+          name = model.name,
+          namespace = model.namespace,
+          path = model.path,
+          table = nil,
+          fillable = {},
+          relationships = {},
+          scopes = {},
+          accessors = {},
+          mutators = {},
+        }
+
+        -- Parse file to extract model information
+        local file = io.open(model.path, 'r')
+        if file then
+          local content = file:read('*a')
+          file:close()
+
+          -- Extract table name
+          local table_match = content:match('protected%s+%$table%s*=%s*[\'"]([^\'"]+)[\'"]')
+          if table_match then
+            model_info.table = table_match
+          else
+            -- Default Laravel table naming convention
+            model_info.table = model.name:lower() .. 's'
+          end
+
+          -- Extract fillable fields
+          local fillable_match = content:match('protected%s+%$fillable%s*=%s*%[([^%]]+)%]')
+          if fillable_match then
+            for field in fillable_match:gmatch('[\'"]([^\'"]+)[\'"]') do
+              table.insert(model_info.fillable, field)
+            end
+          end
+
+          -- Extract relationships
+          for rel_type in content:gmatch('function%s+%w+%s*%(%s*%).-return%s+$this%->(hasOne|hasMany|belongsTo|belongsToMany)') do
+            if not vim.tbl_contains(model_info.relationships, rel_type) then
+              table.insert(model_info.relationships, rel_type)
+            end
+          end
+
+          -- Extract scopes
+          for scope in content:gmatch('function%s+scope(%w+)%s*%(') do
+            table.insert(model_info.scopes, scope)
+          end
+
+          -- Extract accessors
+          for accessor in content:gmatch('function%s+get(%w+)Attribute%s*%(') do
+            table.insert(model_info.accessors, accessor)
+          end
+
+          -- Extract mutators
+          for mutator in content:gmatch('function%s+set(%w+)Attribute%s*%(') do
+            table.insert(model_info.mutators, mutator)
+          end
+        end
+
+        models[model.name] = model_info
+      end
+
+      return models
+    end
+
+    -- Add new analysis functions for additional component types
+    architecture.analyze_services = function()
+      local services = {}
+      local service_list = navigate.find_services()
+
+      for _, service in ipairs(service_list) do
+        local service_info = {
+          name = service.name,
+          namespace = service.namespace,
+          path = service.path,
+          methods = {},
+          dependencies = {},
+        }
+
+        local file = io.open(service.path, 'r')
+        if file then
+          local content = file:read('*a')
+          file:close()
+
+          -- Extract public methods
+          for method in content:gmatch('public%s+function%s+(%w+)%s*%(') do
+            if method ~= '__construct' then
+              table.insert(service_info.methods, method)
+            end
+          end
+
+          -- Extract dependencies
+          local constructor = content:match('public%s+function%s+__construct%s*%([^)]*%)')
+          if constructor then
+            for dep in constructor:gmatch('(%w+)%s+%$') do
+              table.insert(service_info.dependencies, dep)
+            end
+          end
+        end
+
+        services[service.name] = service_info
+      end
+
+      return services
+    end
+
+    architecture.analyze_jobs = function()
+      local jobs = {}
+      local job_list = navigate.find_jobs()
+
+      for _, job in ipairs(job_list) do
+        local job_info = {
+          name = job.name,
+          namespace = job.namespace,
+          path = job.path,
+          queue = nil,
+          delay = nil,
+          tries = nil,
+        }
+
+        local file = io.open(job.path, 'r')
+        if file then
+          local content = file:read('*a')
+          file:close()
+
+          -- Extract queue configuration
+          local queue_match = content:match('protected%s+%$queue%s*=%s*[\'"]([^\'"]+)[\'"]')
+          if queue_match then
+            job_info.queue = queue_match
+          end
+
+          local delay_match = content:match('protected%s+%$delay%s*=%s*(%d+)')
+          if delay_match then
+            job_info.delay = tonumber(delay_match)
+          end
+
+          local tries_match = content:match('public%s+%$tries%s*=%s*(%d+)')
+          if tries_match then
+            job_info.tries = tonumber(tries_match)
+          end
+        end
+
+        jobs[job.name] = job_info
+      end
+
+      return jobs
+    end
+
+    architecture.analyze_events = function()
+      local events = {}
+      local event_list = navigate.find_events()
+
+      for _, event in ipairs(event_list) do
+        local event_info = {
+          name = event.name,
+          namespace = event.namespace,
+          path = event.path,
+          properties = {},
+        }
+
+        local file = io.open(event.path, 'r')
+        if file then
+          local content = file:read('*a')
+          file:close()
+
+          -- Extract public properties
+          for prop in content:gmatch('public%s+%$(%w+)') do
+            table.insert(event_info.properties, prop)
+          end
+        end
+
+        events[event.name] = event_info
+      end
+
+      return events
+    end
+
+    architecture.analyze_middleware = function()
+      local middleware = {}
+      local middleware_list = navigate.find_middleware()
+
+      for _, mw in ipairs(middleware_list) do
+        local middleware_info = {
+          name = mw.name,
+          namespace = mw.namespace,
+          path = mw.path,
+          handle_method = false,
+        }
+
+        local file = io.open(mw.path, 'r')
+        if file then
+          local content = file:read('*a')
+          file:close()
+
+          -- Check if handle method exists
+          if content:match('public%s+function%s+handle') then
+            middleware_info.handle_method = true
+          end
+        end
+
+        middleware[mw.name] = middleware_info
+      end
+
+      return middleware
+    end
   end,
 }
