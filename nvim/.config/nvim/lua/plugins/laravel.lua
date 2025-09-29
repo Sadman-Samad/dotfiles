@@ -126,6 +126,86 @@ return {
       desc = "Find Seeders",
     },
 
+    -- Route navigation
+    {
+      "<leader>Lfr",
+      function()
+        local navigate = require("laravel.navigate")
+        local route_files = navigate.find_route_files()
+        if #route_files == 0 then
+          require("laravel.ui").warn("No route files found")
+          return
+        end
+
+        local items = vim.tbl_map(function(route)
+          return string.format("[route-file] %s", route.name)
+        end, route_files)
+
+        require("laravel.ui").select(items, {
+          prompt = "Select route file:",
+          kind = "laravel_route_file",
+        }, function(choice)
+          if choice then
+            for _, route in ipairs(route_files) do
+              local display = string.format("[route-file] %s", route.name)
+              if display == choice then
+                if vim.fn.filereadable(route.path) == 1 then
+                  vim.cmd("edit " .. vim.fn.fnameescape(route.path))
+                else
+                  require("laravel.ui").error("Route file not found: " .. route.path)
+                end
+                break
+              end
+            end
+          end
+        end)
+      end,
+      desc = "Find Route Files",
+    },
+
+    {
+      "<leader>LfR",
+      function()
+        local navigate = require("laravel.navigate")
+        local route_definitions = navigate.find_route_definitions()
+        if #route_definitions == 0 then
+          require("laravel.ui").warn("No route definitions found")
+          return
+        end
+
+        local items = vim.tbl_map(function(route)
+          local module_prefix = route.module and "[" .. route.module .. "] " or ""
+          local controller_info = route.controller and " → " .. route.controller or ""
+          return string.format("[%s] %s%s %s%s",
+            route.method, module_prefix, route.uri, route.controller or "", controller_info == "" and "" or controller_info)
+        end, route_definitions)
+
+        require("laravel.ui").select(items, {
+          prompt = "Select route definition:",
+          kind = "laravel_route_definition",
+        }, function(choice)
+          if choice then
+            for _, route in ipairs(route_definitions) do
+              local module_prefix = route.module and "[" .. route.module .. "] " or ""
+              local controller_info = route.controller and " → " .. route.controller or ""
+              local display = string.format("[%s] %s%s %s%s",
+                route.method, module_prefix, route.uri, route.controller or "", controller_info == "" and "" or controller_info)
+
+              if display == choice then
+                if vim.fn.filereadable(route.file_path) == 1 then
+                  vim.cmd("edit +" .. route.line_number .. " " .. vim.fn.fnameescape(route.file_path))
+                else
+                  require("laravel.ui").error("Route file not found: " .. route.file_path)
+                end
+                break
+              end
+            end
+          end
+        end)
+      end,
+      desc = "Find Route Definitions",
+    },
+
     -- Unified Laravel architecture browser
     {
       "<leader>Lfa",
@@ -144,6 +224,8 @@ return {
           { name = "Middleware", finder = navigate.find_middleware },
           { name = "Migrations", finder = schema.find_migrations },
           { name = "Seeders", finder = schema.find_seeders },
+          { name = "Route Files", finder = navigate.find_route_files },
+          { name = "Route Definitions", finder = navigate.find_route_definitions },
         }
 
         ui.select(
@@ -170,6 +252,12 @@ return {
                       return string.format("[migration] %s (%s)", comp.name, comp.timestamp)
                     elseif comp.namespace and comp.namespace:match("Seeders?") then -- Seeder
                       return string.format("[seeder] %s", comp.name)
+                    elseif comp.method and comp.uri then -- Route Definition
+                      local module_prefix = comp.module and "[" .. comp.module .. "] " or ""
+                      local controller_info = comp.controller and " → " .. comp.controller or ""
+                      return string.format("[%s] %s%s%s", comp.method, module_prefix, comp.uri, controller_info)
+                    elseif comp.original_name or comp.relative_path then -- Route File
+                      return string.format("[route-file] %s", comp.name)
                     else -- Regular class components
                       return string.format("[%s] %s", comp.type or "class", comp.name)
                     end
@@ -187,16 +275,30 @@ return {
                           display = string.format("[migration] %s (%s)", comp.name, comp.timestamp)
                         elseif comp.namespace and comp.namespace:match("Seeders?") then -- Seeder
                           display = string.format("[seeder] %s", comp.name)
+                        elseif comp.method and comp.uri then -- Route Definition
+                          local module_prefix = comp.module and "[" .. comp.module .. "] " or ""
+                          local controller_info = comp.controller and " → " .. comp.controller or ""
+                          display = string.format("[%s] %s%s%s", comp.method, module_prefix, comp.uri, controller_info)
+                        elseif comp.original_name or comp.relative_path then -- Route File
+                          display = string.format("[route-file] %s", comp.name)
                         else -- Regular class components
                           display = string.format("[%s] %s", comp.type or "class", comp.name)
                         end
 
                         if display == selected then
+                          -- Determine file path and line number for opening
+                          local file_path = comp.path or comp.file_path
+                          local line_number = comp.line_number
+
                           -- Safety check: ensure path exists and is a file
-                          if vim.fn.filereadable(comp.path) == 1 then
-                            vim.cmd("edit " .. vim.fn.fnameescape(comp.path))
+                          if vim.fn.filereadable(file_path) == 1 then
+                            if line_number then
+                              vim.cmd("edit +" .. line_number .. " " .. vim.fn.fnameescape(file_path))
+                            else
+                              vim.cmd("edit " .. vim.fn.fnameescape(file_path))
+                            end
                           else
-                            ui.error("File not found: " .. comp.path)
+                            ui.error("File not found: " .. file_path)
                           end
                           break
                         end
@@ -618,28 +720,28 @@ return {
         }
 
         -- Parse file to extract methods and dependencies
-        local file = io.open(controller.path, 'r')
+        local file = io.open(controller.path, "r")
         if file then
-          local content = file:read('*a')
+          local content = file:read("*a")
           file:close()
 
           -- Extract public methods
-          for method in content:gmatch('public%s+function%s+(%w+)%s*%(') do
-            if method ~= '__construct' then
+          for method in content:gmatch("public%s+function%s+(%w+)%s*%(") do
+            if method ~= "__construct" then
               table.insert(controller_info.methods, method)
             end
           end
 
           -- Extract dependencies from constructor
-          local constructor = content:match('public%s+function%s+__construct%s*%([^)]*%)')
+          local constructor = content:match("public%s+function%s+__construct%s*%([^)]*%)")
           if constructor then
-            for dep in constructor:gmatch('(%w+)%s+%$') do
+            for dep in constructor:gmatch("(%w+)%s+%$") do
               table.insert(controller_info.dependencies, dep)
             end
           end
 
           -- Extract service usage
-          for service in content:gmatch('$this%->([%w_]+)') do
+          for service in content:gmatch("$this%->([%w_]+)") do
             if not vim.tbl_contains(controller_info.services, service) then
               table.insert(controller_info.services, service)
             end
@@ -671,47 +773,49 @@ return {
         }
 
         -- Parse file to extract model information
-        local file = io.open(model.path, 'r')
+        local file = io.open(model.path, "r")
         if file then
-          local content = file:read('*a')
+          local content = file:read("*a")
           file:close()
 
           -- Extract table name
-          local table_match = content:match('protected%s+%$table%s*=%s*[\'"]([^\'"]+)[\'"]')
+          local table_match = content:match("protected%s+%$table%s*=%s*['\"]([^'\"]+)['\"]")
           if table_match then
             model_info.table = table_match
           else
             -- Default Laravel table naming convention
-            model_info.table = model.name:lower() .. 's'
+            model_info.table = model.name:lower() .. "s"
           end
 
           -- Extract fillable fields
-          local fillable_match = content:match('protected%s+%$fillable%s*=%s*%[([^%]]+)%]')
+          local fillable_match = content:match("protected%s+%$fillable%s*=%s*%[([^%]]+)%]")
           if fillable_match then
-            for field in fillable_match:gmatch('[\'"]([^\'"]+)[\'"]') do
+            for field in fillable_match:gmatch("['\"]([^'\"]+)['\"]") do
               table.insert(model_info.fillable, field)
             end
           end
 
           -- Extract relationships
-          for rel_type in content:gmatch('function%s+%w+%s*%(%s*%).-return%s+$this%->(hasOne|hasMany|belongsTo|belongsToMany)') do
+          for rel_type in
+            content:gmatch("function%s+%w+%s*%(%s*%).-return%s+$this%->(hasOne|hasMany|belongsTo|belongsToMany)")
+          do
             if not vim.tbl_contains(model_info.relationships, rel_type) then
               table.insert(model_info.relationships, rel_type)
             end
           end
 
           -- Extract scopes
-          for scope in content:gmatch('function%s+scope(%w+)%s*%(') do
+          for scope in content:gmatch("function%s+scope(%w+)%s*%(") do
             table.insert(model_info.scopes, scope)
           end
 
           -- Extract accessors
-          for accessor in content:gmatch('function%s+get(%w+)Attribute%s*%(') do
+          for accessor in content:gmatch("function%s+get(%w+)Attribute%s*%(") do
             table.insert(model_info.accessors, accessor)
           end
 
           -- Extract mutators
-          for mutator in content:gmatch('function%s+set(%w+)Attribute%s*%(') do
+          for mutator in content:gmatch("function%s+set(%w+)Attribute%s*%(") do
             table.insert(model_info.mutators, mutator)
           end
         end
@@ -736,22 +840,22 @@ return {
           dependencies = {},
         }
 
-        local file = io.open(service.path, 'r')
+        local file = io.open(service.path, "r")
         if file then
-          local content = file:read('*a')
+          local content = file:read("*a")
           file:close()
 
           -- Extract public methods
-          for method in content:gmatch('public%s+function%s+(%w+)%s*%(') do
-            if method ~= '__construct' then
+          for method in content:gmatch("public%s+function%s+(%w+)%s*%(") do
+            if method ~= "__construct" then
               table.insert(service_info.methods, method)
             end
           end
 
           -- Extract dependencies
-          local constructor = content:match('public%s+function%s+__construct%s*%([^)]*%)')
+          local constructor = content:match("public%s+function%s+__construct%s*%([^)]*%)")
           if constructor then
-            for dep in constructor:gmatch('(%w+)%s+%$') do
+            for dep in constructor:gmatch("(%w+)%s+%$") do
               table.insert(service_info.dependencies, dep)
             end
           end
@@ -777,23 +881,23 @@ return {
           tries = nil,
         }
 
-        local file = io.open(job.path, 'r')
+        local file = io.open(job.path, "r")
         if file then
-          local content = file:read('*a')
+          local content = file:read("*a")
           file:close()
 
           -- Extract queue configuration
-          local queue_match = content:match('protected%s+%$queue%s*=%s*[\'"]([^\'"]+)[\'"]')
+          local queue_match = content:match("protected%s+%$queue%s*=%s*['\"]([^'\"]+)['\"]")
           if queue_match then
             job_info.queue = queue_match
           end
 
-          local delay_match = content:match('protected%s+%$delay%s*=%s*(%d+)')
+          local delay_match = content:match("protected%s+%$delay%s*=%s*(%d+)")
           if delay_match then
             job_info.delay = tonumber(delay_match)
           end
 
-          local tries_match = content:match('public%s+%$tries%s*=%s*(%d+)')
+          local tries_match = content:match("public%s+%$tries%s*=%s*(%d+)")
           if tries_match then
             job_info.tries = tonumber(tries_match)
           end
@@ -817,13 +921,13 @@ return {
           properties = {},
         }
 
-        local file = io.open(event.path, 'r')
+        local file = io.open(event.path, "r")
         if file then
-          local content = file:read('*a')
+          local content = file:read("*a")
           file:close()
 
           -- Extract public properties
-          for prop in content:gmatch('public%s+%$(%w+)') do
+          for prop in content:gmatch("public%s+%$(%w+)") do
             table.insert(event_info.properties, prop)
           end
         end
@@ -846,13 +950,13 @@ return {
           handle_method = false,
         }
 
-        local file = io.open(mw.path, 'r')
+        local file = io.open(mw.path, "r")
         if file then
-          local content = file:read('*a')
+          local content = file:read("*a")
           file:close()
 
           -- Check if handle method exists
-          if content:match('public%s+function%s+handle') then
+          if content:match("public%s+function%s+handle") then
             middleware_info.handle_method = true
           end
         end
@@ -872,14 +976,17 @@ return {
         -- Generate unique buffer name with timestamp
         local timestamp = os.date("%H:%M:%S")
         local buf = vim.api.nvim_create_buf(false, true)
-        vim.api.nvim_buf_set_lines(buf, 0, -1, false, vim.split(diagram, '\n'))
-        vim.api.nvim_buf_set_option(buf, 'filetype', 'mermaid')
-        local unique_name = string.format('Laravel Architecture - %s (%s)',
-          diagram_type:gsub('_', ' '):gsub('^%l', string.upper), timestamp)
+        vim.api.nvim_buf_set_lines(buf, 0, -1, false, vim.split(diagram, "\n"))
+        vim.api.nvim_buf_set_option(buf, "filetype", "mermaid")
+        local unique_name = string.format(
+          "Laravel Architecture - %s (%s)",
+          diagram_type:gsub("_", " "):gsub("^%l", string.upper),
+          timestamp
+        )
         vim.api.nvim_buf_set_name(buf, unique_name)
-        vim.cmd('split')
+        vim.cmd("split")
         vim.api.nvim_set_current_buf(buf)
-        require("laravel.ui").info('Architecture diagram displayed in buffer')
+        require("laravel.ui").info("Architecture diagram displayed in buffer")
       elseif not success then
         -- Re-throw other errors
         error(err)
@@ -906,22 +1013,22 @@ return {
       -- Define migration directories for different module structures
       local migration_paths = {
         -- Standard Laravel
-        root .. '/database/migrations',
+        root .. "/database/migrations",
         -- nwidart/laravel-modules pattern
-        root .. '/Modules/*/Database/migrations',
-        root .. '/Modules/*/database/migrations',
+        root .. "/Modules/*/Database/migrations",
+        root .. "/Modules/*/database/migrations",
         -- Alternative module structures
-        root .. '/modules/*/Database/migrations',
-        root .. '/modules/*/database/migrations',
-        root .. '/app/Modules/*/Database/migrations',
-        root .. '/app/Modules/*/database/migrations',
+        root .. "/modules/*/Database/migrations",
+        root .. "/modules/*/database/migrations",
+        root .. "/app/Modules/*/Database/migrations",
+        root .. "/app/Modules/*/database/migrations",
       }
 
       -- Use ripgrep to find all PHP files that look like migrations
       local rg_command = string.format(
-        "rg --type php --files --glob '*_*.php' " ..
-        "--glob '!vendor/**' --glob '!node_modules/**' --glob '!storage/**' " ..
-        "'%s' 2>/dev/null | grep -E '(migrations?|Migration)' | head -200",
+        "rg --type php --files --glob '*_*.php' "
+          .. "--glob '!vendor/**' --glob '!node_modules/**' --glob '!storage/**' "
+          .. "'%s' 2>/dev/null | grep -E '(migrations?|Migration)' | head -200",
         root
       )
 
@@ -929,17 +1036,17 @@ return {
       if handle then
         for file in handle:lines() do
           -- Check if this looks like a migration file by filename pattern
-          local name = vim.fn.fnamemodify(file, ':t:r')
-          local timestamp, migration_name = name:match('^(%d%d%d%d_%d%d_%d%d_%d+)_(.+)$')
+          local name = vim.fn.fnamemodify(file, ":t:r")
+          local timestamp, migration_name = name:match("^(%d%d%d%d_%d%d_%d%d_%d+)_(.+)$")
 
           if timestamp and migration_name then
             -- Also check directory path to confirm it's in a migrations directory
-            if file:match('/migrations?/') or file:match('/Migrations?/') then
+            if file:match("/migrations?/") or file:match("/Migrations?/") then
               table.insert(migrations, {
                 name = migration_name,
                 full_name = name,
                 timestamp = timestamp,
-                path = file
+                path = file,
               })
             end
           end
@@ -950,18 +1057,18 @@ return {
       -- Fallback to directory scanning for standard locations if ripgrep finds nothing
       if #migrations == 0 then
         for _, dir in ipairs(migration_paths) do
-          if not dir:match('%*') and vim.fn.isdirectory(dir) == 1 then
-            local files = vim.fn.glob(dir .. '/*.php', false, true)
+          if not dir:match("%*") and vim.fn.isdirectory(dir) == 1 then
+            local files = vim.fn.glob(dir .. "/*.php", false, true)
             for _, file in ipairs(files) do
-              local name = vim.fn.fnamemodify(file, ':t:r')
-              local timestamp, migration_name = name:match('^(%d%d%d%d_%d%d_%d%d_%d+)_(.+)$')
+              local name = vim.fn.fnamemodify(file, ":t:r")
+              local timestamp, migration_name = name:match("^(%d%d%d%d_%d%d_%d%d_%d+)_(.+)$")
 
               if timestamp and migration_name then
                 table.insert(migrations, {
                   name = migration_name,
                   full_name = name,
                   timestamp = timestamp,
-                  path = file
+                  path = file,
                 })
               end
             end
@@ -988,9 +1095,9 @@ return {
 
       -- Use ripgrep to find seeder files across modules
       local rg_command = string.format(
-        "rg --type php --no-heading --line-number " ..
-        "--glob '!vendor/**' --glob '!node_modules/**' " ..
-        "'class\\s+(\\w+)\\s+extends\\s+.*Seeder' '%s' 2>/dev/null",
+        "rg --type php --no-heading --line-number "
+          .. "--glob '!vendor/**' --glob '!node_modules/**' "
+          .. "'class\\s+(\\w+)\\s+extends\\s+.*Seeder' '%s' 2>/dev/null",
         root
       )
 
@@ -1011,7 +1118,9 @@ return {
                     namespace = ns:gsub("%s+", "")
                     break
                   end
-                  if file:seek() > 1024 then break end
+                  if file:seek() > 1024 then
+                    break
+                  end
                 end
                 file:close()
               end
@@ -1019,7 +1128,7 @@ return {
               table.insert(seeders, {
                 name = seeder_name,
                 namespace = namespace or "Database\\Seeders",
-                path = file_path
+                path = file_path,
               })
             end
           end
@@ -1028,6 +1137,172 @@ return {
       end
 
       return seeders
+    end
+
+    -- Override route finding functions to support module routes
+    local original_find_route_files = navigate.find_route_files
+
+    -- Enhanced find_route_files using ripgrep to find all route files across modules
+    navigate.find_route_files = function()
+      local function get_project_root()
+        return _G.laravel_nvim and _G.laravel_nvim.project_root
+      end
+
+      local root = get_project_root()
+      if not root then
+        return {}
+      end
+
+      local route_files = {}
+
+      -- Use ripgrep to find PHP files that contain route definitions
+      local rg_command = string.format(
+        "rg --type php --files-with-matches " ..
+        "--glob '!vendor/**' --glob '!node_modules/**' --glob '!storage/**' " ..
+        "'(Route::|Router::|group\\(|get\\(|post\\(|put\\(|patch\\(|delete\\(|resource\\(|apiResource\\()' '%s' 2>/dev/null",
+        root
+      )
+
+      local handle = io.popen(rg_command)
+      if handle then
+        for file in handle:lines() do
+          -- Check if this looks like a route file by path and content patterns
+          local is_route_file = false
+
+          -- Common route file patterns
+          if file:match('/routes/') or file:match('/Routes/') or
+             file:match('routes%.php$') or file:match('Routes%.php$') or
+             file:match('web%.php$') or file:match('api%.php$') then
+            is_route_file = true
+          end
+
+          -- Also check if it's in a module structure with route-like content
+          if file:match('/Modules/.*/[Rr]outes/') or
+             file:match('/modules/.*/[Rr]outes/') or
+             file:match('/app/Modules/.*/[Rr]outes/') then
+            is_route_file = true
+          end
+
+          if is_route_file then
+            local name = vim.fn.fnamemodify(file, ':t:r')
+            local relative_path = file:gsub("^" .. vim.pesc(root) .. "/?", "")
+
+            -- Extract module name if it's a module route
+            local module_name = file:match('/Modules/([^/]+)/') or
+                               file:match('/modules/([^/]+)/') or
+                               file:match('/app/Modules/([^/]+)/')
+
+            local display_name = name
+            if module_name then
+              display_name = module_name .. "/" .. name
+            end
+
+            table.insert(route_files, {
+              name = display_name,
+              original_name = name,
+              path = file,
+              relative_path = relative_path,
+              module = module_name
+            })
+          end
+        end
+        handle:close()
+      end
+
+      -- Fallback to standard directory scanning if ripgrep finds nothing
+      if #route_files == 0 then
+        local standard_routes = root .. '/routes'
+        if vim.fn.isdirectory(standard_routes) == 1 then
+          local files = vim.fn.glob(standard_routes .. '/*.php', false, true)
+          for _, file in ipairs(files) do
+            local name = vim.fn.fnamemodify(file, ':t:r')
+            table.insert(route_files, {
+              name = name,
+              original_name = name,
+              path = file,
+              relative_path = 'routes/' .. name .. '.php',
+              module = nil
+            })
+          end
+        end
+      end
+
+      -- Sort by name for better UX
+      table.sort(route_files, function(a, b)
+        return a.name < b.name
+      end)
+
+      return route_files
+    end
+
+    -- Add function to find specific route definitions across modules
+    navigate.find_route_definitions = function()
+      local root = get_project_root()
+      if not root then
+        return {}
+      end
+
+      local routes = {}
+
+      -- Use ripgrep to find specific route definitions
+      local route_patterns = {
+        "Route::get\\(['\"]([^'\"]+)['\"]",
+        "Route::post\\(['\"]([^'\"]+)['\"]",
+        "Route::put\\(['\"]([^'\"]+)['\"]",
+        "Route::patch\\(['\"]([^'\"]+)['\"]",
+        "Route::delete\\(['\"]([^'\"]+)['\"]",
+        "Route::resource\\(['\"]([^'\"]+)['\"]",
+        "Route::apiResource\\(['\"]([^'\"]+)['\"]"
+      }
+
+      for _, pattern in ipairs(route_patterns) do
+        local method = pattern:match("Route::(%w+)")
+        local rg_command = string.format(
+          "rg --type php --no-heading --line-number " ..
+          "--glob '!vendor/**' --glob '!node_modules/**' " ..
+          "'%s' '%s' 2>/dev/null",
+          pattern, root
+        )
+
+        local handle = io.popen(rg_command)
+        if handle then
+          for line in handle:lines() do
+            local file_path, line_num, content = line:match("^([^:]+):(%d+):(.*)$")
+            if file_path and content then
+              local uri = content:match(pattern)
+              if uri then
+                -- Extract controller/action if present
+                local controller = content:match("['\"]([^'\"]*Controller[^'\"]*)['\"]")
+
+                -- Extract module from file path
+                local module_name = file_path:match('/Modules/([^/]+)/') or
+                                   file_path:match('/modules/([^/]+)/') or
+                                   file_path:match('/app/Modules/([^/]+)/')
+
+                table.insert(routes, {
+                  method = method:upper(),
+                  uri = uri,
+                  controller = controller,
+                  file_path = file_path,
+                  line_number = tonumber(line_num),
+                  module = module_name
+                })
+              end
+            end
+          end
+          handle:close()
+        end
+      end
+
+      -- Sort by URI for better organization
+      table.sort(routes, function(a, b)
+        if a.module ~= b.module then
+          return (a.module or "") < (b.module or "")
+        end
+        return a.uri < b.uri
+      end)
+
+      return routes
     end
   end,
 }
