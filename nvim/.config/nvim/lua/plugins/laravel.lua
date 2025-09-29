@@ -100,7 +100,12 @@ return {
                       for _, comp in ipairs(components) do
                         local display = string.format("[%s] %s", comp.type or "class", comp.name)
                         if display == selected then
-                          vim.cmd("edit " .. comp.path)
+                          -- Safety check: ensure path exists and is a file
+                          if vim.fn.filereadable(comp.path) == 1 then
+                            vim.cmd("edit " .. vim.fn.fnameescape(comp.path))
+                          else
+                            ui.error("File not found: " .. comp.path)
+                          end
                           break
                         end
                       end
@@ -456,7 +461,12 @@ return {
             if choice then
               for _, comp in ipairs(components) do
                 if comp.name == choice then
-                  vim.cmd("edit " .. comp.path)
+                  -- Safety check: ensure path exists and is a file
+                  if vim.fn.filereadable(comp.path) == 1 then
+                    vim.cmd("edit " .. vim.fn.fnameescape(comp.path))
+                  else
+                    require("laravel.ui").error("File not found: " .. comp.path)
+                  end
                   break
                 end
               end
@@ -473,7 +483,12 @@ return {
           end
 
           if found then
-            vim.cmd("edit " .. found.path)
+            -- Safety check: ensure path exists and is a file
+            if vim.fn.filereadable(found.path) == 1 then
+              vim.cmd("edit " .. vim.fn.fnameescape(found.path))
+            else
+              require("laravel.ui").error("File not found: " .. found.path)
+            end
           else
             require("laravel.ui").error(component_type:gsub("^%l", string.upper) .. " not found: " .. name)
           end
@@ -754,6 +769,29 @@ return {
       end
 
       return middleware
+    end
+
+    -- Fix buffer name conflict in architecture diagrams
+    local original_show_architecture_diagram = architecture.show_architecture_diagram
+    architecture.show_architecture_diagram = function(diagram, diagram_type)
+      -- Call original function but wrap it to handle buffer name conflicts
+      local success, err = pcall(original_show_architecture_diagram, diagram, diagram_type)
+      if not success and err:match("Buffer with this name already exists") then
+        -- Generate unique buffer name with timestamp
+        local timestamp = os.date("%H:%M:%S")
+        local buf = vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_buf_set_lines(buf, 0, -1, false, vim.split(diagram, '\n'))
+        vim.api.nvim_buf_set_option(buf, 'filetype', 'mermaid')
+        local unique_name = string.format('Laravel Architecture - %s (%s)',
+          diagram_type:gsub('_', ' '):gsub('^%l', string.upper), timestamp)
+        vim.api.nvim_buf_set_name(buf, unique_name)
+        vim.cmd('split')
+        vim.api.nvim_set_current_buf(buf)
+        require("laravel.ui").info('Architecture diagram displayed in buffer')
+      elseif not success then
+        -- Re-throw other errors
+        error(err)
+      end
     end
   end,
 }
