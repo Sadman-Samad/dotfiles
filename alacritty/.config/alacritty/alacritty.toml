@@ -12,7 +12,7 @@ args = ["-l"]
 
 # Font configuration - CaskaydiaMono preferred, JetBrainsMono fallback
 [font]
-size = 13
+size = 15
 
 [font.normal]
 family = "CaskaydiaMono Nerd Font"
