@@ -112,6 +112,7 @@ alias vps='ssh -i ~/.ssh/id_rsa galib@147.93.153.135'
 alias kube_vps='ssh -i ~/.ssh/kube_rsa faisal@13.126.197.249'
 alias local_vps='ssh -i ~/.ssh/kube_rsa root@vm.softcellbd.net -p 65535'
 
+
 # Claude Code aliases
 alias cc='claude'
 alias ccy='claude --resume --dangerously-skip-permissions'  # Yellow mode - skip permissions

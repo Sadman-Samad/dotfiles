@@ -3,6 +3,7 @@
 # Dotfiles Installation Script
 # Automated setup for personal development environment on Arch Linux
 
+
 set -e
 
 # Colors for output
