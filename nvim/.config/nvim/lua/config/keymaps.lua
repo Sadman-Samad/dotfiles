@@ -20,14 +20,14 @@ local function symbols_filter(entry, ctx)
 end
 
 keymap.set("n", "<leader>ss", function()
-  require("fzf-lua").lsp_live_workspace_symbols({
-    regex_filter = symbols_filter,
+  require("telescope.builtin").lsp_dynamic_workspace_symbols({
+    symbols = require("lazyvim.util").get_kind_filter(),
   })
 end, { desc = "Global Symbol (Workspace)" })
 
 keymap.set("n", "<leader>sS", function()
-  require("fzf-lua").lsp_document_symbols({
-    regex_filter = symbols_filter,
+  require("telescope.builtin").lsp_document_symbols({
+    symbols = require("lazyvim.util").get_kind_filter(),
   })
 end, { desc = "Goto Symbol" })
 
@@ -55,7 +55,7 @@ vim.keymap.set("n", "<leader>h", function()
 end, { desc = "Open harpoon window" })
 
 keymap.set("n", "<leader>ff", function()
-  require("fzf-lua").files()
+  require("telescope.builtin").find_files()
 end, { desc = "Find files" })
 
 -- Flutter keymaps (using <leader>F for Flutter commands)

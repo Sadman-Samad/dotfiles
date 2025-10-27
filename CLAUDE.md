@@ -164,3 +164,4 @@ bin/apply-shortcuts-preset krohnkite-default  # Apply preset shortcuts
 - Package-specific configurations maintain upstream directory structure
 - Lock files and generated content preserved for reproducibility
 - KDE configurations stored in `kde/.config/` matching `~/.config/` structure
+- @hyprland/ this folder is my old hyperland config . you can see my implementation but dont modify it .my current hyprland dotfiles lives in @omarchy/.config/hypr/ folder read and modify those if you wanted to change something
