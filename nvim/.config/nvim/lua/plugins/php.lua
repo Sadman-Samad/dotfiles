@@ -75,7 +75,7 @@ return {
 
   -- Set Intelephense as preferred PHP LSP
   {
-    "williamboman/mason.nvim",
+    "mason-org/mason.nvim",
     opts = {
       ensure_installed = {
         "intelephense",

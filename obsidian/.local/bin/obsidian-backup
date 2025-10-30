@@ -1,0 +1,200 @@
+#!/usr/bin/env bash
+
+# obsidian-backup - Backup Obsidian vaults to git
+# Usage: obsidian-backup [vault-path] [commit-message]
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Configuration
+DEFAULT_VAULTS_DIR="$HOME/Documents"
+
+# Helper functions
+print_info() {
+    echo -e "${BLUE}ℹ${NC} $1"
+}
+
+print_success() {
+    echo -e "${GREEN}✓${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}⚠${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}✗${NC} $1"
+}
+
+usage() {
+    cat <<EOF
+Usage: obsidian-backup [vault-path] [commit-message]
+
+Backup Obsidian vault(s) to git repositories.
+
+Arguments:
+  vault-path       Optional: Specific vault to backup
+                   If not specified, will backup all vaults in ~/Documents
+  commit-message   Optional: Custom commit message
+                   Default: "Vault backup: $(date +'%Y-%m-%d %H:%M')"
+
+What happens:
+  1. Checks for uncommitted changes
+  2. Stages all changes (respecting .gitignore)
+  3. Creates a commit with timestamp
+  4. Pushes to remote (if configured)
+
+Examples:
+  obsidian-backup                                    # Backup all vaults
+  obsidian-backup ~/Documents/vault-personal         # Backup specific vault
+  obsidian-backup ~/Documents/vault-work "Weekly review notes"
+
+EOF
+}
+
+# Function to backup a single vault
+backup_vault() {
+    local vault_path="$1"
+    local commit_msg="${2:-Vault backup: $(date +'%Y-%m-%d %H:%M')}"
+    local vault_name=$(basename "$vault_path")
+
+    # Check if it's a git repository
+    if [[ ! -d "$vault_path/.git" ]]; then
+        print_warning "Skipping $vault_name: Not a git repository"
+        echo "  Initialize with: cd $vault_path && git init"
+        return 1
+    fi
+
+    print_info "Backing up $vault_name..."
+
+    cd "$vault_path"
+
+    # Check for changes
+    if git diff-index --quiet HEAD -- 2>/dev/null; then
+        print_info "  No changes to commit"
+
+        # Check if remote is configured and up to date
+        if git remote get-url origin &>/dev/null; then
+            local_commit=$(git rev-parse HEAD 2>/dev/null || echo "")
+            remote_commit=$(git rev-parse origin/$(git branch --show-current) 2>/dev/null || echo "none")
+
+            if [[ "$local_commit" != "$remote_commit" && "$remote_commit" != "none" ]]; then
+                print_info "  Pushing existing commits to remote..."
+                if git push; then
+                    print_success "Pushed $vault_name to remote"
+                else
+                    print_warning "Failed to push $vault_name"
+                    return 1
+                fi
+            else
+                print_info "  Already up to date with remote"
+            fi
+        else
+            print_info "  No remote configured"
+        fi
+        return 0
+    fi
+
+    # Show status
+    print_info "  Changes detected:"
+    git status --short | head -n 10
+    local total_changes=$(git status --short | wc -l)
+    if [[ $total_changes -gt 10 ]]; then
+        echo "  ... and $(($total_changes - 10)) more files"
+    fi
+
+    # Stage all changes
+    git add -A
+
+    # Commit
+    print_info "  Creating commit..."
+    if git commit -m "$commit_msg"; then
+        print_success "Committed changes to $vault_name"
+    else
+        print_error "Failed to commit $vault_name"
+        return 1
+    fi
+
+    # Push if remote is configured
+    if git remote get-url origin &>/dev/null; then
+        print_info "  Pushing to remote..."
+        if git push; then
+            print_success "Pushed $vault_name to remote"
+        else
+            print_warning "Failed to push $vault_name (run 'git push' manually)"
+            return 1
+        fi
+    else
+        print_warning "No remote configured for $vault_name"
+        echo "  Add remote with: git remote add origin <url>"
+    fi
+
+    return 0
+}
+
+# Handle help
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    usage
+    exit 0
+fi
+
+# If specific vault provided, backup only that vault
+if [[ -n "$1" && -d "$1" ]]; then
+    VAULT_PATH="$1"
+    COMMIT_MSG="$2"
+
+    if [[ ! -d "$VAULT_PATH" ]]; then
+        print_error "Vault not found: $VAULT_PATH"
+        exit 1
+    fi
+
+    backup_vault "$VAULT_PATH" "$COMMIT_MSG"
+    echo
+    print_success "Backup complete!"
+    exit 0
+fi
+
+# Otherwise, find and backup all vaults in default directory
+COMMIT_MSG="$1"  # If first arg is a message, not a path
+
+print_info "Searching for Obsidian vaults in $DEFAULT_VAULTS_DIR..."
+
+# Find all directories with .obsidian folder
+vaults_found=0
+vaults_backed_up=0
+
+while IFS= read -r -d '' vault_path; do
+    vault_dir=$(dirname "$vault_path")
+
+    # Skip the old "Obsidian Vault" if it exists
+    if [[ "$(basename "$vault_dir")" == "Obsidian Vault" ]]; then
+        print_info "Skipping legacy vault: Obsidian Vault"
+        continue
+    fi
+
+    ((vaults_found++))
+
+    if backup_vault "$vault_dir" "$COMMIT_MSG"; then
+        ((vaults_backed_up++))
+    fi
+
+    echo  # Blank line between vaults
+done < <(find "$DEFAULT_VAULTS_DIR" -maxdepth 2 -type d -name ".obsidian" -print0 2>/dev/null)
+
+if [[ $vaults_found -eq 0 ]]; then
+    print_warning "No Obsidian vaults found in $DEFAULT_VAULTS_DIR"
+    echo "Create a vault with: obsidian-vault-init <name> <type>"
+else
+    echo
+    print_success "Backed up $vaults_backed_up of $vaults_found vault(s)!"
+fi
+
+echo
+echo "Tip: You can run this script regularly or set up a cron job"
+echo "  Example cron (daily at 10pm): 0 22 * * * $HOME/.local/bin/obsidian-backup"

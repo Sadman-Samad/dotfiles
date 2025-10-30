@@ -73,6 +73,13 @@ stow -D -t ~ <package-name> # Remove symlinks
 - KRunner application launcher settings
 - Automated Krohnkite setup script in `bin/setup-krohnkite`
 
+**obsidian/**: Obsidian vault management and configuration
+- Shared .obsidian configuration templates (themes, plugins, settings)
+- Multiple specialized vault support (personal, work, public, projects)
+- Helper scripts for vault initialization, sync, and backup
+- Hybrid project documentation workflow
+- Configuration stored in dotfiles, notes in separate git repos
+
 ### Development Workflow Commands
 
 **Tmux Session Management:**
@@ -107,6 +114,35 @@ bin/apply-shortcuts-preset krohnkite-default  # Apply preset shortcuts
 - `Meta+\`: Switch to next layout
 - `Meta+R`: Rotate windows
 
+**Obsidian Vault Management:**
+```bash
+# Initialize new vaults (types: personal, work, public, project)
+obsidian-vault-init vault-personal personal      # Personal notes
+obsidian-vault-init vault-work work              # Work notes
+obsidian-vault-init vault-public public          # Public knowledge base
+obsidian-vault-init vault-projects personal      # Project planning
+
+# Sync configuration from dotfiles to all vaults
+obsidian-sync-config                             # Sync all vaults
+obsidian-sync-config ~/Documents/vault-personal  # Sync specific vault
+
+# Backup vaults to git
+obsidian-backup                                  # Backup all vaults
+obsidian-backup ~/Documents/vault-personal       # Backup specific vault
+obsidian-backup "Weekly review notes"            # With custom commit message
+
+# Initialize Obsidian documentation in project repos
+project-doc-init                                 # In current project directory
+project-doc-init ~/Projects/my-app               # Specific project path
+```
+
+**Obsidian Vault Organization:**
+- **vault-personal/**: Personal notes, learning, life planning (private git repo)
+- **vault-work/**: Work-related notes and documentation (private/company git repo)
+- **vault-public/**: Public knowledge base and documentation (public git repo)
+- **vault-projects/**: Project planning and technical notes (private git repo)
+- Configuration synced from dotfiles, notes tracked in separate repositories
+
 ### Configuration Patterns
 
 **Neovim Plugin Management:**
@@ -119,6 +155,14 @@ bin/apply-shortcuts-preset krohnkite-default  # Apply preset shortcuts
 - Zsh configuration sources multiple files for different concerns
 - VS Code settings organized by feature categories
 - KDE configurations separated by component (kwin, plasma, shortcuts)
+- Obsidian shared configuration with vault-specific overrides
+
+**Obsidian Integration:**
+- Shared .obsidian config in dotfiles (themes, plugins, hotkeys, settings)
+- Type-specific .gitignore templates (personal, work, public, project)
+- Helper scripts for vault lifecycle management
+- Hybrid approach: basic docs in project repos, detailed notes in vaults
+- Workspace files excluded from git (machine-specific)
 
 **Cross-Application Integration:**
 - Shared clipboard configuration across tmux, nvim, and system
