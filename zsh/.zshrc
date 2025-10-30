@@ -252,3 +252,6 @@ export SDKMAN_DIR="$HOME/.sdkman"
 ## [/Completion]
 
 export PATH="/home/galib/.config/shorebird/bin:$PATH"
+
+# Claude Code Templates - Global Agents
+export PATH="/home/galib/.claude-code-templates/bin:$PATH"

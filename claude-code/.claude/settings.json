@@ -1,3 +1,6 @@
 {
+  "enabledPlugins": {
+    "security-pro@claude-code-templates": true
+  },
   "alwaysThinkingEnabled": false
 }
