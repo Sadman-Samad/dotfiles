@@ -80,6 +80,14 @@ stow -D -t ~ <package-name> # Remove symlinks
 - Hybrid project documentation workflow
 - Configuration stored in dotfiles, notes in separate git repos
 
+**claude-code/**: Claude Code AI assistant configuration
+- Global settings (always thinking mode, preferences, etc.)
+- Custom slash commands in `commands/` directory
+- Event hooks in `hooks/` directory
+- MCP (Model Context Protocol) server configurations
+- Machine-specific data (credentials, history) excluded via .gitignore
+- Symlinked configuration keeps settings portable across machines
+
 ### Development Workflow Commands
 
 **Tmux Session Management:**
@@ -142,6 +150,31 @@ project-doc-init ~/Projects/my-app               # Specific project path
 - **vault-public/**: Public knowledge base and documentation (public git repo)
 - **vault-projects/**: Project planning and technical notes (private git repo)
 - Configuration synced from dotfiles, notes tracked in separate repositories
+
+**Claude Code Configuration:**
+```bash
+# Install Claude Code configuration
+stow claude-code              # or use ./stowup claude-code
+
+# Add custom slash command (create markdown files in commands/)
+echo "Review code for security vulnerabilities" > claude-code/.claude/commands/security.md
+
+# Add MCP server (edit .mcp.json if global config is supported)
+# Note: Currently MCP servers are typically configured per-project
+
+# After installation, credentials are restored from backup automatically
+# All settings, commands, and hooks sync across machines via dotfiles
+```
+
+**Custom Slash Commands:**
+- Create `.md` files in `claude-code/.claude/commands/`
+- Use with `/command-name` in Claude Code
+- Commands are version-controlled and sync across machines
+
+**Event Hooks:**
+- Configure hooks in `claude-code/.claude/hooks/`
+- Run shell commands on Claude Code events (tool calls, prompt submit, etc.)
+- Refer to Claude Code documentation for available hook types
 
 ### Configuration Patterns
 
