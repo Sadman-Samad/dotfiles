@@ -37,7 +37,19 @@ if [ -L "$SYSTEM_LOGO" ]; then
     echo "You can now edit: $DOTFILES_LOGO"
     echo "Changes will automatically reflect in the system."
     echo ""
-    echo "Run 'sudo mkinitcpio -P' to rebuild initramfs and apply changes."
+    echo "Rebuilding initramfs to apply Plymouth changes..."
+    sudo mkinitcpio -P
+
+    if [ $? -eq 0 ]; then
+        echo ""
+        echo "✓ Initramfs rebuilt successfully!"
+        echo "Reboot to see the changes at boot."
+    else
+        echo ""
+        echo "✗ Failed to rebuild initramfs"
+        echo "You may need to run 'sudo mkinitcpio -P' manually"
+        exit 1
+    fi
 else
     echo "✗ Failed to create symlink"
     exit 1
