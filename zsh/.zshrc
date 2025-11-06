@@ -123,6 +123,23 @@ alias ccv='claude --verbose'   # Verbose logging
 alias ccu='claude update'      # Update Claude Code
 alias ccm='claude mcp'         # MCP server configuration
 
+# Z.AI endpoint helper function (uses pass for secure API key storage)
+_ccz_env() {
+  ANTHROPIC_AUTH_TOKEN="$(pass ApiKey/ZAi/claude)" \
+  ANTHROPIC_BASE_URL="https://api.z.ai/api/anthropic" \
+  API_TIMEOUT_MS="3000000" \
+  CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1 \
+  "$@"
+}
+
+# Claude Code with Z.AI endpoint aliases
+alias ccz='_ccz_env claude'                                              # Z.AI endpoint
+alias cczy='_ccz_env claude --resume --dangerously-skip-permissions'     # Z.AI + yellow mode
+alias cczc='_ccz_env claude --continue'                                  # Z.AI + continue
+alias cczr='_ccz_env claude --resume'                                    # Z.AI + resume
+alias cczp='_ccz_env claude -p'                                          # Z.AI + print mode
+alias cczv='_ccz_env claude --verbose'                                   # Z.AI + verbose
+
 # ADD Env
 
 export PATH="$HOME/dotfiles:$PATH"
