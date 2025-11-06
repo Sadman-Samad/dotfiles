@@ -125,7 +125,7 @@ alias ccm='claude mcp'         # MCP server configuration
 
 # Z.AI endpoint helper function (uses pass for secure API key storage)
 _ccz_env() {
-  ANTHROPIC_AUTH_TOKEN="$(pass ApiKey/ZAi/claude)" \
+  ANTHROPIC_AUTH_TOKEN="$(pass ApiKey/ZAi/claude | head -n1)" \
   ANTHROPIC_BASE_URL="https://api.z.ai/api/anthropic" \
   API_TIMEOUT_MS="3000000" \
   CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1 \
