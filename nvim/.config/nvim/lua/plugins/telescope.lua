@@ -44,6 +44,44 @@ return {
       end,
       desc = "Find Plugin File",
     },
+
+    -- search for files of same type in root directory
+    {
+      "<leader>ft",
+      function()
+        local builtin = require("telescope.builtin")
+        local utils = require("telescope.utils")
+
+        -- Get current buffer's file extension
+        local current_file = vim.api.nvim_buf_get_name(0)
+
+        -- Check if we have a valid file
+        if current_file == "" then
+          vim.notify("No file active to determine type", vim.log.levels.WARN)
+          return
+        end
+
+        -- Extract file extension
+        local extension = current_file:match("^.+%.(.+)$")
+
+        if not extension then
+          vim.notify("Cannot determine file type - no extension found", vim.log.levels.WARN)
+          return
+        end
+
+        -- Get project root directory
+        local root_dir = utils.buffer_dir()
+
+        -- Search for files with the same extension in root directory
+        builtin.find_files({
+          cwd = root_dir,
+          search_dirs = { root_dir },
+          glob_pattern = "*." .. extension,
+          prompt_title = "Files of type (." .. extension .. ") in " .. utils.path_tail(root_dir),
+        })
+      end,
+      desc = "Find Files of Same Type in Root",
+    },
     {
       "<leader>sS",
       function()
