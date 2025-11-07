@@ -1,9 +1,6 @@
 {
-  "enabledPlugins": {
-    "security-pro@claude-code-templates": true
-  },
+  "enabledPlugins": {},
   "alwaysThinkingEnabled": false,
-  "model": "opus",
   "hooks": {
     "Stop": [
       {
