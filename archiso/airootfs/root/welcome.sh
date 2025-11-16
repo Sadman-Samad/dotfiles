@@ -42,13 +42,46 @@ read -p "Enter your choice (1-5): " CHOICE
 case $CHOICE in
     1)
         echo -e "${BLUE}Starting KDE Plasma...${NC}"
+        echo -e "${YELLOW}Note: Running as root with --allow-root flag${NC}"
         sleep 1
-        exec startplasma-wayland
+        # KDE can run as root with this flag
+        exec startplasma-wayland --allow-root 2>/dev/null || exec startplasma-x11
         ;;
     2)
         echo -e "${BLUE}Starting Hyprland...${NC}"
+        echo -e "${YELLOW}Creating temporary user for Wayland session...${NC}"
         sleep 1
-        exec Hyprland
+
+        # Create temporary user if not exists
+        if ! id -u liveuser &>/dev/null; then
+            useradd -m -G wheel,audio,video,input,seat -s /bin/zsh liveuser
+            echo "liveuser:live" | chpasswd
+        fi
+
+        # Copy dotfiles to liveuser
+        if [ ! -d "/home/liveuser/dotfiles" ]; then
+            cp -r /root/dotfiles /home/liveuser/
+            chown -R liveuser:liveuser /home/liveuser/dotfiles
+        fi
+
+        # Set up XDG_RUNTIME_DIR for the user
+        LIVEUSER_UID=$(id -u liveuser)
+        mkdir -p /run/user/$LIVEUSER_UID
+        chown liveuser:liveuser /run/user/$LIVEUSER_UID
+        chmod 700 /run/user/$LIVEUSER_UID
+
+        # Switch to liveuser and start Hyprland with proper environment
+        echo -e "${GREEN}Starting Hyprland as 'liveuser'...${NC}"
+        echo -e "${CYAN}(Password is 'live' if needed)${NC}"
+        sleep 1
+
+        # Switch to liveuser and start Hyprland
+        # We need to use a login shell and set environment properly
+        su -l liveuser << EOF
+export XDG_RUNTIME_DIR=/run/user/$LIVEUSER_UID
+export XDG_SESSION_TYPE=wayland
+exec dbus-run-session Hyprland
+EOF
         ;;
     3)
         echo -e "${BLUE}Starting Automated Installer...${NC}"
