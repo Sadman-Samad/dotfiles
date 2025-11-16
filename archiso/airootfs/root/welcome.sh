@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Welcome script for Custom Arch Linux Live Environment
+# Welcome script for Galib OS Live Environment
 #
 
 # Colors
@@ -18,9 +18,9 @@ clear
 cat << "EOF"
 ╔═══════════════════════════════════════════════════════════════════╗
 ║                                                                   ║
-║          Welcome to Custom Arch Linux Live Environment           ║
+║                    Welcome to Galib OS                            ║
 ║                                                                   ║
-║                     Configured with Dotfiles                      ║
+║         Galib OS - Arch Linux + Omarchy + Custom Dotfiles          ║
 ║                                                                   ║
 ╚═══════════════════════════════════════════════════════════════════╝
 EOF
@@ -28,26 +28,18 @@ EOF
 echo ""
 echo -e "${CYAN}Choose an option:${NC}"
 echo ""
-echo -e "${GREEN}1)${NC} Start KDE Plasma Desktop Environment (Live)"
-echo -e "${GREEN}2)${NC} Start Hyprland (Live)"
-echo -e "${GREEN}3)${NC} Install Arch Linux to Disk (Automated Installer)"
-echo -e "${GREEN}4)${NC} Manual Installation (for advanced users)"
-echo -e "${GREEN}5)${NC} Shell (Stay in terminal)"
+echo -e "${GREEN}1)${NC} Start Hyprland (Live Environment)"
+echo -e "${GREEN}2)${NC} Install Galib OS to Disk (Automated Installer)"
+echo -e "${GREEN}3)${NC} Manual Installation (for advanced users)"
+echo -e "${GREEN}4)${NC} Shell (Stay in terminal)"
 echo ""
-echo -e "${YELLOW}Note: Live environments include your dotfiles pre-configured!${NC}"
+echo -e "${YELLOW}Note: Hyprland and all your dotfiles are pre-configured!${NC}"
 echo ""
 
-read -p "Enter your choice (1-5): " CHOICE
+read -p "Enter your choice (1-4): " CHOICE
 
 case $CHOICE in
     1)
-        echo -e "${BLUE}Starting KDE Plasma...${NC}"
-        echo -e "${YELLOW}Note: Running as root with --allow-root flag${NC}"
-        sleep 1
-        # KDE can run as root with this flag
-        exec startplasma-wayland --allow-root 2>/dev/null || exec startplasma-x11
-        ;;
-    2)
         echo -e "${BLUE}Starting Hyprland...${NC}"
         echo -e "${YELLOW}Creating temporary user for Wayland session...${NC}"
         sleep 1
@@ -58,10 +50,9 @@ case $CHOICE in
             echo "liveuser:live" | chpasswd
         fi
 
-        # Copy dotfiles to liveuser
+        # Sync dotfiles to liveuser
         if [ ! -d "/home/liveuser/dotfiles" ]; then
-            cp -r /root/dotfiles /home/liveuser/
-            chown -R liveuser:liveuser /home/liveuser/dotfiles
+            /root/sync-dotfiles.sh liveuser
         fi
 
         # Set up XDG_RUNTIME_DIR for the user
@@ -75,20 +66,18 @@ case $CHOICE in
         echo -e "${CYAN}(Password is 'live' if needed)${NC}"
         sleep 1
 
-        # Switch to liveuser and start Hyprland
-        # We need to use a login shell and set environment properly
         su -l liveuser << EOF
 export XDG_RUNTIME_DIR=/run/user/$LIVEUSER_UID
 export XDG_SESSION_TYPE=wayland
 exec dbus-run-session Hyprland
 EOF
         ;;
-    3)
+    2)
         echo -e "${BLUE}Starting Automated Installer...${NC}"
         sleep 1
         exec /root/install-arch.sh
         ;;
-    4)
+    3)
         clear
         echo -e "${CYAN}Manual Installation Guide:${NC}"
         echo ""
@@ -105,7 +94,7 @@ EOF
         echo "Installation script reference: /root/install-arch.sh"
         echo ""
         ;;
-    5)
+    4)
         clear
         echo -e "${GREEN}Entering shell...${NC}"
         echo ""

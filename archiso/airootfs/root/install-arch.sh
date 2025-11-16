@@ -1,7 +1,7 @@
 #!/bin/bash
 #
-# Automated Arch Linux Installer
-# Installs Arch Linux with your custom dotfiles configuration
+# Galib OS Installer
+# Installs Galib OS (Arch Linux + Omarchy + Custom Dotfiles)
 #
 
 set -e
@@ -36,13 +36,15 @@ clear
 cat << "EOF"
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
-║      Custom Arch Linux Installer with Dotfiles           ║
+║              Galib OS Installer                           ║
+║                                                           ║
+║      Arch Linux + Omarchy + Custom Dotfiles               ║
 ║                                                           ║
 ╚═══════════════════════════════════════════════════════════╝
 EOF
 
 echo ""
-info "This script will install Arch Linux with your custom configurations"
+info "This script will install Galib OS with your custom configurations"
 echo ""
 
 # Check if running in UEFI mode
@@ -77,21 +79,21 @@ echo ""
 read -sp "Enter root password: " ROOT_PASSWORD
 echo ""
 
-# Step 3: Desktop Environment Selection
-info "Step 3: Desktop Environment Selection"
+# Step 3: Confirm Installation
+info "Step 3: Confirm Installation"
 echo ""
-echo "1) KDE Plasma"
-echo "2) Hyprland"
-echo "3) Both (KDE + Hyprland)"
+echo "Desktop Environment: Hyprland (with Omarchy)"
+echo "Dotfiles: Pre-configured from ~/dotfiles"
 echo ""
-read -p "Select desktop environment (1/2/3): " DE_CHOICE
+read -p "Continue with installation? (yes/no): " INSTALL_CONFIRM
 
-case $DE_CHOICE in
-    1) INSTALL_KDE=true; INSTALL_HYPRLAND=false ;;
-    2) INSTALL_KDE=false; INSTALL_HYPRLAND=true ;;
-    3) INSTALL_KDE=true; INSTALL_HYPRLAND=true ;;
-    *) error "Invalid choice" ;;
-esac
+if [ "$INSTALL_CONFIRM" != "yes" ]; then
+    error "Installation cancelled by user."
+fi
+
+# Set installation flags
+INSTALL_KDE=false
+INSTALL_HYPRLAND=true
 
 # Step 4: Partitioning
 info "Step 4: Partitioning the disk..."
@@ -220,53 +222,135 @@ pacman -S --noconfirm \
     efibootmgr \
     os-prober
 
-# Install desktop environment
-if [ "$INSTALL_KDE" = "true" ]; then
-    echo "Installing KDE Plasma..."
-    pacman -S --noconfirm \
-        plasma-desktop \
-        plasma-nm \
-        plasma-pa \
-        plasma-workspace \
-        sddm \
-        konsole \
-        dolphin \
-        kate \
-        ark \
-        spectacle
+# Install Hyprland desktop environment
+echo "Installing Hyprland with Omarchy..."
+pacman -S --noconfirm \
+    hyprland \
+    waybar \
+    wofi \
+    rofi \
+    dunst \
+    mako \
+    grim \
+    slurp \
+    wl-clipboard \
+    xdg-desktop-portal-hyprland \
+    xdg-desktop-portal-gtk \
+    polkit-kde-agent \
+    qt5-wayland \
+    qt6-wayland \
+    qt5ct \
+    kvantum \
+    swaylock \
+    swayidle
 
-    systemctl enable sddm
+# Don't enable a display manager - we'll auto-login to Hyprland
+
+# Install Omarchy base system
+echo "Installing Omarchy..."
+
+# Copy Omarchy system files from live environment if available
+if [ -d "/usr/share/omarchy" ]; then
+    echo "Omarchy system files found, copying..."
+    cp -r /usr/share/omarchy /usr/share/
 fi
 
-if [ "$INSTALL_HYPRLAND" = "true" ]; then
-    echo "Installing Hyprland..."
-    pacman -S --noconfirm \
-        hyprland \
-        waybar \
-        wofi \
-        dunst \
-        grim \
-        slurp \
-        wl-clipboard \
-        xdg-desktop-portal-hyprland \
-        xdg-desktop-portal-gtk
-fi
+# Install Omarchy package if available
+# pacman -S --noconfirm omarchy || echo "Omarchy package not found, using bundled files"
 
 # Enable NetworkManager
 systemctl enable NetworkManager
+
+# Install yay and AUR packages
+echo "Installing yay and AUR packages..."
+/root/install-aur-packages.sh
 
 # Install GRUB bootloader
 grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB
 grub-mkconfig -o /boot/grub/grub.cfg
 
-# Clone dotfiles
-echo "Cloning dotfiles..."
-if [ -d "/root/dotfiles" ]; then
-    cp -r /root/dotfiles "/home/$USERNAME/dotfiles"
-    chown -R "$USERNAME:$USERNAME" "/home/$USERNAME/dotfiles"
+# Install and configure Plymouth
+echo "Configuring Plymouth boot splash..."
+pacman -S --noconfirm plymouth
+
+# Copy Plymouth theme if available
+if [ -d "/usr/share/plymouth/themes/galibos" ]; then
+    echo "Plymouth theme already installed"
+else
+    echo "Note: Plymouth theme will be available after reboot"
 fi
 
-echo "Installation complete!"
+# Set Plymouth theme
+plymouth-set-default-theme -R text 2>/dev/null || echo "Using default text theme"
+
+# Update initramfs for Plymouth
+sed -i 's/^HOOKS=.*/HOOKS=(base udev autodetect modconf block filesystems keyboard fsck)/' /etc/mkinitcpio.conf
+
+# Rebuild initramfs
+mkinitcpio -P
+
+# Update GRUB configuration for Plymouth
+sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT="quiet"/' /etc/default/grub
+
+# Regenerate GRUB config
+grub-mkconfig -o /boot/grub/grub.cfg
+
+# Create Galib OS identification
+cat > /etc/os-release << 'EOF'
+NAME="Galib OS"
+PRETTY_NAME="Galib OS"
+ID=galibos
+ID_LIKE=arch
+BUILD_ID=rolling
+ANSI_COLOR="38;2;23;147;209"
+HOME_URL="https://github.com/yourusername/dotfiles"
+DOCUMENTATION_URL="https://github.com/yourusername/dotfiles"
+SUPPORT_URL="https://github.com/yourusername/dotfiles"
+BUG_REPORT_URL="https://github.com/yourusername/dotfiles/issues"
+LOGO=galibos
+EOF
+
+# Clone and setup dotfiles
+echo "Setting up dotfiles..."
+if [ -d "/root/dotfiles" ]; then
+    # Copy from live environment
+    cp -r /root/dotfiles "/home/$USERNAME/dotfiles"
+    chown -R "$USERNAME:$USERNAME" "/home/$USERNAME/dotfiles"
+
+    # Install dotfiles
+    echo "Installing dotfiles..."
+    cd "/home/$USERNAME/dotfiles"
+
+    # Run install script as user
+    sudo -u "$USERNAME" ./install.sh
+
+    cd /root
+else
+    echo "Warning: Dotfiles not found in live environment"
+fi
+
+echo "Dotfiles setup complete!"
+
+# Configure auto-login to Hyprland
+echo "Configuring auto-login..."
+
+# Create systemd drop-in for getty@tty1
+mkdir -p /etc/systemd/system/getty@tty1.service.d
+cat > /etc/systemd/system/getty@tty1.service.d/autologin.conf << EOF
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty -o '-p -f -- \\u' --noclear --autologin $USERNAME - \$TERM
+EOF
+
+# Create .zprofile for auto-starting Hyprland
+cat > /home/$USERNAME/.zprofile << 'EOF'
+# Auto-start Hyprland on tty1
+if [ -z "$DISPLAY" ] && [ "$XDG_VTNR" = 1 ]; then
+    exec Hyprland
+fi
+EOF
+
+chown $USERNAME:$USERNAME /home/$USERNAME/.zprofile
 
 CHROOT_EOF
 
@@ -275,8 +359,6 @@ sed -i "s/__HOSTNAME__/$HOSTNAME/g" /mnt/root/configure.sh
 sed -i "s/__USERNAME__/$USERNAME/g" /mnt/root/configure.sh
 sed -i "s/__USER_PASSWORD__/$USER_PASSWORD/g" /mnt/root/configure.sh
 sed -i "s/__ROOT_PASSWORD__/$ROOT_PASSWORD/g" /mnt/root/configure.sh
-sed -i "s/__INSTALL_KDE__/$INSTALL_KDE/g" /mnt/root/configure.sh
-sed -i "s/__INSTALL_HYPRLAND__/$INSTALL_HYPRLAND/g" /mnt/root/configure.sh
 
 # Make script executable
 chmod +x /mnt/root/configure.sh
@@ -297,13 +379,14 @@ success "System configuration complete!"
 # Step 7: Post-installation instructions
 info "Step 7: Installation Complete!"
 echo ""
-success "Arch Linux has been successfully installed!"
+success "Galib OS has been successfully installed!"
 echo ""
 info "Next steps:"
 echo "1. The system will reboot automatically"
 echo "2. Log in with username: $USERNAME"
-echo "3. Run: cd ~/dotfiles && ./install.sh"
-echo "4. Enjoy your configured system!"
+echo "3. Hyprland will start automatically"
+echo "4. Your dotfiles are already installed at ~/dotfiles"
+echo "5. Enjoy your configured system!"
 echo ""
 
 read -p "Press Enter to reboot..."

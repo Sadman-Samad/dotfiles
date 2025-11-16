@@ -1,4 +1,7 @@
-# Base system packages
+# Galib OS - Custom Arch Linux ISO based on Omarchy
+# Package list for live environment
+
+# === Base system packages ===
 alsa-utils
 amd-ucode
 arch-install-scripts
@@ -79,7 +82,10 @@ xdg-utils
 xfsprogs
 zsh
 
-# Essential development tools
+# === Plymouth boot splash ===
+plymouth
+
+# === Essential development tools ===
 git
 stow
 wget
@@ -90,20 +96,25 @@ tar
 gzip
 which
 
-# Networking and system utilities
+# === Networking and system utilities ===
 networkmanager
 network-manager-applet
 dnsmasq
 bind
+nss-mdns
 
-# Shell and terminal
+# === Terminal emulators ===
 alacritty
 kitty
+ghostty
+wezterm
+
+# === Shell and utilities ===
 fastfetch
 btop
 htop
 
-# CLI utilities from your dotfiles
+# === CLI utilities from your dotfiles ===
 bat
 eza
 fd
@@ -111,28 +122,19 @@ ripgrep
 fzf
 zoxide
 starship
+exa
+tree
+duf
+dust
 
-# Text editors
+# === Text editors ===
 neovim
 
-# KDE Plasma Desktop Environment
-plasma-desktop
-plasma-nm
-plasma-pa
-plasma-workspace
-kscreen
-powerdevil
-sddm
-konsole
-dolphin
-kate
-ark
-spectacle
-gwenview
-okular
-
-# Hyprland and Wayland components
+# === Hyprland and Wayland components ===
 hyprland
+hypridle
+hyprlock
+hyprpicker
 waybar
 wofi
 dunst
@@ -144,55 +146,71 @@ xdg-desktop-portal-gtk
 qt5-wayland
 qt6-wayland
 
-# X11 support (for compatibility)
+# === Omarchy dependencies ===
+uwsm
+rofi
+swaybg
+swaync
+
+# === X11 support (for compatibility) ===
 xorg-server
 xorg-xinit
 xorg-xwayland
+xorg-server-common
 
-# Audio
+# === Audio ===
 pipewire
 pipewire-alsa
 pipewire-pulse
 pipewire-jack
 wireplumber
+pamixer
+pulsemixer
 
-# Bluetooth
+# === Bluetooth ===
 bluez
 bluez-utils
 blueberry
 
-# Fonts
+# === Fonts ===
 ttf-jetbrains-mono-nerd
+ttf-jetbrains-mono
 ttf-liberation
 ttf-dejavu
 noto-fonts
 noto-fonts-emoji
+ttf-fira-code
+ttf-fira-sans
 
-# File systems support
+# === File systems support ===
 gvfs
 gvfs-mtp
 gvfs-afc
 gvfs-gphoto2
 gvfs-smb
 gvfs-nfs
+udisks2
 
-# Archive support
+# === Archive support ===
 p7zip
+unzip
 unrar
+zip
 
-# System utilities
+# === System utilities ===
 brightnessctl
 acpi
 acpid
 cpupower
+power-profiles-daemon
 
-# Additional utilities
+# === Applications ===
 firefox
-fastfetch
-tree
-duf
-dust
+obsidian
+signal-desktop
+nemo
+nemo-fileroller
 
-# Docker (optional, can be installed later)
-# docker
-# docker-compose
+# === Development tools ===
+lazydocker
+lazygit
