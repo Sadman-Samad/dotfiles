@@ -1,0 +1,198 @@
+# Base system packages
+alsa-utils
+amd-ucode
+arch-install-scripts
+archinstall
+base
+base-devel
+bcachefs-tools
+btrfs-progs
+cryptsetup
+dhcpcd
+diffutils
+dmidecode
+dosfstools
+e2fsprogs
+edk2-shell
+efibootmgr
+exfatprogs
+f2fs-tools
+fatresize
+gpart
+gpm
+gptfdisk
+grub
+hdparm
+intel-ucode
+iw
+iwd
+jfsutils
+less
+libfido2
+linux
+linux-firmware
+linux-firmware-marvell
+lsscsi
+lvm2
+man-db
+man-pages
+mdadm
+memtest86+
+memtest86+-efi
+mkinitcpio
+mkinitcpio-archiso
+mkinitcpio-nfs-utils
+mtools
+nano
+nbd
+ndisc6
+nfs-utils
+nmap
+ntfs-3g
+nvme-cli
+openssh
+parted
+pcsclite
+ppp
+pv
+reflector
+rsync
+screen
+sdparm
+sequoia-sq
+sg3_utils
+smartmontools
+sof-firmware
+squashfs-tools
+sudo
+syslinux
+systemd-resolvconf
+terminus-font
+tmux
+udftools
+usbutils
+vim
+wireless-regdb
+wireless_tools
+wpa_supplicant
+xdg-utils
+xfsprogs
+zsh
+
+# Essential development tools
+git
+stow
+wget
+curl
+unzip
+zip
+tar
+gzip
+which
+
+# Networking and system utilities
+networkmanager
+network-manager-applet
+dnsmasq
+bind
+
+# Shell and terminal
+alacritty
+kitty
+fastfetch
+btop
+htop
+
+# CLI utilities from your dotfiles
+bat
+eza
+fd
+ripgrep
+fzf
+zoxide
+starship
+
+# Text editors
+neovim
+
+# KDE Plasma Desktop Environment
+plasma-desktop
+plasma-nm
+plasma-pa
+plasma-workspace
+kscreen
+powerdevil
+sddm
+konsole
+dolphin
+kate
+ark
+spectacle
+gwenview
+okular
+
+# Hyprland and Wayland components
+hyprland
+waybar
+wofi
+dunst
+grim
+slurp
+wl-clipboard
+xdg-desktop-portal-hyprland
+xdg-desktop-portal-gtk
+qt5-wayland
+qt6-wayland
+
+# X11 support (for compatibility)
+xorg-server
+xorg-xinit
+xorg-xwayland
+
+# Audio
+pipewire
+pipewire-alsa
+pipewire-pulse
+pipewire-jack
+wireplumber
+
+# Bluetooth
+bluez
+bluez-utils
+blueberry
+
+# Fonts
+ttf-jetbrains-mono-nerd
+ttf-liberation
+ttf-dejavu
+noto-fonts
+noto-fonts-emoji
+
+# File systems support
+gvfs
+gvfs-mtp
+gvfs-afc
+gvfs-gphoto2
+gvfs-smb
+gvfs-nfs
+
+# Archive support
+p7zip
+unrar
+
+# System utilities
+brightnessctl
+acpi
+acpid
+cpupower
+
+# Additional utilities
+firefox
+fastfetch
+tree
+duf
+dust
+
+# Docker (optional, can be installed later)
+# docker
+# docker-compose

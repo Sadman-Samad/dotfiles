@@ -1,0 +1,32 @@
+# KRunner Configuration
+# Replace this template with your actual ~/.config/krunnerrc file
+
+[General]
+FreeFloating=true
+
+[PlasmaRunnerManager]
+LaunchCounts=
+
+[Plugins]
+baloosearchEnabled=false
+bookmarksrunnerEnabled=true
+browsertabsEnabled=true
+calculatorEnabled=true
+charactersrunnerEnabled=true
+dictionaryEnabled=false
+katesessionsEnabled=false
+killEnabled=true
+konsoleprofilesEnabled=false
+krunner_appstreamEnabled=false
+krunner_killEnabled=true
+locationsrunnerEnabled=true
+org.kde.activitiesEnabled=false
+org.kde.datetimeEnabled=false
+org.kde.windowedwidgetsEnabled=false
+placesrunnerEnabled=true
+plasma-desktopEnabled=false
+recentdocumentsEnabled=false
+shellEnabled=true
+unitconverterEnabled=true
+webshortcutsEnabled=true
+windowsEnabled=true

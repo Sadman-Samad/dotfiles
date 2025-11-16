@@ -1,0 +1,141 @@
+#!/usr/bin/env bash
+
+# Krohnkite Setup Script
+# Sets up Krohnkite tiling window manager for KDE Plasma
+
+set -e
+
+echo "Setting up Krohnkite tiling window manager..."
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+print_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+print_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+# Check if running KDE
+if [ "$XDG_CURRENT_DESKTOP" != "KDE" ]; then
+    print_warning "Not running KDE Plasma. Krohnkite requires KDE Plasma desktop environment."
+    echo "Current desktop: $XDG_CURRENT_DESKTOP"
+    read -p "Continue anyway? (y/N): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        exit 1
+    fi
+fi
+
+# Check if Krohnkite is installed
+KROHNKITE_PATH="$HOME/.local/share/kwin/scripts/krohnkite"
+if [ ! -d "$KROHNKITE_PATH" ]; then
+    print_error "Krohnkite is not installed!"
+    echo "Install Krohnkite first:"
+    echo "  yay -S kwin-scripts-krohnkite-git"
+    echo "  # or"
+    echo "  paru -S kwin-scripts-krohnkite-git"
+    exit 1
+fi
+
+print_success "Krohnkite installation found at $KROHNKITE_PATH"
+
+# Create kservices5 directory if it doesn't exist
+KSERVICES_DIR="$HOME/.local/share/kservices5"
+if [ ! -d "$KSERVICES_DIR" ]; then
+    print_info "Creating kservices5 directory..."
+    mkdir -p "$KSERVICES_DIR"
+    print_success "Created $KSERVICES_DIR"
+fi
+
+# Create the required symlink for user configuration
+SYMLINK_TARGET="$KSERVICES_DIR/krohnkite.desktop"
+SYMLINK_SOURCE="$KROHNKITE_PATH/metadata.desktop"
+
+if [ -L "$SYMLINK_TARGET" ]; then
+    print_info "Symlink already exists, removing old one..."
+    rm "$SYMLINK_TARGET"
+fi
+
+if [ -f "$SYMLINK_TARGET" ]; then
+    print_warning "File exists at symlink target, backing up..."
+    mv "$SYMLINK_TARGET" "$SYMLINK_TARGET.backup"
+fi
+
+print_info "Creating required symlink for Krohnkite configuration..."
+ln -s "$SYMLINK_SOURCE" "$SYMLINK_TARGET"
+
+if [ -L "$SYMLINK_TARGET" ]; then
+    print_success "Symlink created successfully"
+else
+    print_error "Failed to create symlink"
+    exit 1
+fi
+
+# Enable Krohnkite in KWin configuration
+print_info "Enabling Krohnkite in KWin configuration..."
+
+# Use kwriteconfig5 to enable the plugin
+kwriteconfig5 --file kwinrc --group Plugins --key krohnkiteEnabled true
+
+print_success "Krohnkite enabled in KWin configuration"
+
+# Reconfigure KWin to apply changes
+print_info "Reconfiguring KWin to apply changes..."
+
+if command -v qdbus &> /dev/null; then
+    if qdbus org.kde.KWin /KWin reconfigure 2>/dev/null; then
+        print_success "KWin reconfigured successfully"
+    else
+        print_warning "Could not reconfigure KWin via DBus. You may need to restart KWin manually."
+        echo "Try running: kwin_x11 --replace & disown"
+    fi
+else
+    print_warning "qdbus not available. You may need to restart KWin manually."
+    echo "Try running: kwin_x11 --replace & disown"
+fi
+
+# Check if Krohnkite is properly loaded
+print_info "Verifying Krohnkite installation..."
+sleep 2
+
+# Try to check if the script is loaded
+if qdbus org.kde.KWin /Scripting loadedScripts 2>/dev/null | grep -q krohnkite; then
+    print_success "Krohnkite is loaded and ready!"
+else
+    print_warning "Krohnkite may not be fully loaded yet."
+    echo "Try logging out and back in, or restart KWin manually:"
+    echo "  kwin_x11 --replace & disown  # For X11"
+    echo "  kwin_wayland --replace & disown  # For Wayland"
+fi
+
+echo
+print_success "Krohnkite setup completed!"
+echo
+echo "Default shortcuts:"
+echo "  Meta+F          - Toggle tiling for current window"
+echo "  Meta+Shift+F    - Toggle floating for current window"
+echo "  Meta+Return     - Set window as master"
+echo "  Meta+J/K        - Move focus between windows"
+echo "  Meta+Shift+J/K  - Move windows"
+echo "  Meta+H/L        - Resize master area"
+echo "  Meta+\\         - Switch to next layout"
+echo "  Meta+R          - Rotate windows"
+echo
+echo "You can customize these shortcuts in:"
+echo "System Settings → Shortcuts → Global Shortcuts → KWin"
+echo

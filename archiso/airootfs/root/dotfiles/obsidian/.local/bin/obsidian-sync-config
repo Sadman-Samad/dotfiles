@@ -1,0 +1,172 @@
+#!/usr/bin/env bash
+
+# obsidian-sync-config - Sync Obsidian configuration from dotfiles to vaults
+# Usage: obsidian-sync-config [vault-path]
+#   vault-path: Optional specific vault to sync (syncs all vaults if not specified)
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Configuration
+DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
+OBSIDIAN_CONFIG_DIR="$DOTFILES_DIR/obsidian/.config/obsidian"
+DEFAULT_VAULTS_DIR="$HOME/Documents"
+
+# Helper functions
+print_info() {
+    echo -e "${BLUE}ℹ${NC} $1"
+}
+
+print_success() {
+    echo -e "${GREEN}✓${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}⚠${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}✗${NC} $1"
+}
+
+usage() {
+    cat <<EOF
+Usage: obsidian-sync-config [vault-path]
+
+Sync Obsidian configuration from dotfiles to vault(s).
+
+Arguments:
+  vault-path    Optional: Specific vault to sync
+                If not specified, will search for and sync all vaults in ~/Documents
+
+What gets synced:
+  ✓ Shared configuration (themes, plugins, settings)
+  ✗ Workspace files (machine-specific, not synced)
+  ✗ Cache files (not synced)
+
+Examples:
+  obsidian-sync-config                           # Sync all vaults
+  obsidian-sync-config ~/Documents/vault-personal  # Sync specific vault
+
+EOF
+}
+
+# Function to detect vault type from folder name or content
+detect_vault_type() {
+    local vault_path="$1"
+    local vault_name=$(basename "$vault_path")
+
+    # Try to detect from name
+    if [[ "$vault_name" == *"personal"* ]]; then
+        echo "personal"
+    elif [[ "$vault_name" == *"work"* ]]; then
+        echo "work"
+    elif [[ "$vault_name" == *"public"* ]]; then
+        echo "public"
+    elif [[ "$vault_name" == *"project"* ]]; then
+        echo "project"
+    else
+        # Default to personal
+        echo "personal"
+    fi
+}
+
+# Function to sync config to a vault
+sync_vault() {
+    local vault_path="$1"
+    local vault_name=$(basename "$vault_path")
+
+    if [[ ! -d "$vault_path/.obsidian" ]]; then
+        print_warning "Skipping $vault_name: Not an Obsidian vault (no .obsidian folder)"
+        return
+    fi
+
+    print_info "Syncing $vault_name..."
+
+    # Detect vault type
+    local vault_type=$(detect_vault_type "$vault_path")
+    print_info "  Detected type: $vault_type"
+
+    # Backup current workspace files (we don't want to overwrite these)
+    local backup_files=()
+    if [[ -f "$vault_path/.obsidian/workspace.json" ]]; then
+        cp "$vault_path/.obsidian/workspace.json" "$vault_path/.obsidian/workspace.json.bak"
+        backup_files+=("workspace.json")
+    fi
+    if [[ -f "$vault_path/.obsidian/workspace-mobile.json" ]]; then
+        cp "$vault_path/.obsidian/workspace-mobile.json" "$vault_path/.obsidian/workspace-mobile.json.bak"
+        backup_files+=("workspace-mobile.json")
+    fi
+
+    # Sync shared config
+    print_info "  Copying shared config..."
+    cp -r "$OBSIDIAN_CONFIG_DIR/shared-config"/* "$vault_path/.obsidian/"
+
+    # Sync type-specific config if exists
+    local type_config_dir="$OBSIDIAN_CONFIG_DIR/${vault_type}-config"
+    if [[ -d "$type_config_dir" ]]; then
+        print_info "  Copying $vault_type-specific config..."
+        # Copy files but not .gitignore.template
+        find "$type_config_dir" -type f ! -name '.gitignore.template' -exec cp {} "$vault_path/.obsidian/" \; 2>/dev/null || true
+    fi
+
+    # Restore workspace files
+    for file in "${backup_files[@]}"; do
+        if [[ -f "$vault_path/.obsidian/$file.bak" ]]; then
+            mv "$vault_path/.obsidian/$file.bak" "$vault_path/.obsidian/$file"
+        fi
+    done
+
+    print_success "Synced $vault_name"
+}
+
+# Check if dotfiles obsidian config exists
+if [[ ! -d "$OBSIDIAN_CONFIG_DIR" ]]; then
+    print_error "Obsidian config not found in dotfiles: $OBSIDIAN_CONFIG_DIR"
+    echo "Make sure you have the obsidian package in dotfiles"
+    exit 1
+fi
+
+# If specific vault provided, sync only that vault
+if [[ -n "$1" ]]; then
+    VAULT_PATH="$1"
+
+    if [[ ! -d "$VAULT_PATH" ]]; then
+        print_error "Vault not found: $VAULT_PATH"
+        exit 1
+    fi
+
+    sync_vault "$VAULT_PATH"
+    echo
+    print_success "Configuration synced successfully!"
+    exit 0
+fi
+
+# Otherwise, find and sync all vaults in default directory
+print_info "Searching for Obsidian vaults in $DEFAULT_VAULTS_DIR..."
+
+# Find all directories with .obsidian folder
+vaults_found=0
+while IFS= read -r -d '' vault_path; do
+    vault_dir=$(dirname "$vault_path")
+    sync_vault "$vault_dir"
+    ((vaults_found++))
+done < <(find "$DEFAULT_VAULTS_DIR" -maxdepth 2 -type d -name ".obsidian" -print0 2>/dev/null)
+
+if [[ $vaults_found -eq 0 ]]; then
+    print_warning "No Obsidian vaults found in $DEFAULT_VAULTS_DIR"
+    echo "Create a vault with: obsidian-vault-init <name> <type>"
+else
+    echo
+    print_success "Synced configuration to $vaults_found vault(s)!"
+fi
+
+echo
+echo "Note: Workspace files were preserved (machine-specific)"
+echo "Run this command anytime you update Obsidian settings in dotfiles"

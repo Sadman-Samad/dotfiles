@@ -1,0 +1,26 @@
+# Obsidian Workspace Files (Machine-Specific)
+# These change constantly and are specific to your device
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+
+# Cache Files
+.obsidian/cache/
+.obsidian/*/cache/
+.obsidian/workspace-cache
+
+# Trash
+.trash/
+
+# System Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary Files
+*.tmp
+*.temp
+~*
+.~*
+
+# Obsidian Sync (if using official sync)
+.obsidian/sync-config.json

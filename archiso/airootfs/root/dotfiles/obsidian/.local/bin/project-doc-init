@@ -1,0 +1,373 @@
+#!/usr/bin/env bash
+
+# project-doc-init - Initialize Obsidian documentation in a project repository
+# Usage: project-doc-init [project-path]
+#   project-path: Path to project (defaults to current directory)
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Configuration
+DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
+OBSIDIAN_CONFIG_DIR="$DOTFILES_DIR/obsidian/.config/obsidian"
+
+# Helper functions
+print_info() {
+    echo -e "${BLUE}ℹ${NC} $1"
+}
+
+print_success() {
+    echo -e "${GREEN}✓${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}⚠${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}✗${NC} $1"
+}
+
+usage() {
+    cat <<EOF
+Usage: project-doc-init [project-path]
+
+Initialize Obsidian-compatible documentation in a project repository.
+
+This creates a docs/ folder with Obsidian configuration, allowing you to:
+  • Keep basic documentation in the project repo
+  • Open docs/ as an Obsidian vault
+  • Maintain detailed notes in your main Obsidian vault with links
+
+Arguments:
+  project-path    Path to project (default: current directory)
+
+Structure created:
+  docs/
+  ├── .obsidian/           # Obsidian configuration
+  ├── README.md            # Documentation overview
+  ├── Architecture.md      # Architecture overview
+  ├── Setup.md             # Setup instructions
+  └── .gitignore           # Ignore workspace files
+
+Examples:
+  project-doc-init                    # Initialize in current directory
+  project-doc-init ~/Projects/my-app  # Initialize in specific project
+
+EOF
+}
+
+# Handle help
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    usage
+    exit 0
+fi
+
+PROJECT_PATH="${1:-.}"
+
+# Resolve to absolute path
+PROJECT_PATH=$(cd "$PROJECT_PATH" && pwd)
+PROJECT_NAME=$(basename "$PROJECT_PATH")
+DOCS_PATH="$PROJECT_PATH/docs"
+
+# Check if project exists
+if [[ ! -d "$PROJECT_PATH" ]]; then
+    print_error "Project path not found: $PROJECT_PATH"
+    exit 1
+fi
+
+# Check if docs already exists
+if [[ -d "$DOCS_PATH/.obsidian" ]]; then
+    print_warning "Documentation already initialized at: $DOCS_PATH"
+    read -p "Do you want to reinitialize? (y/N) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        print_info "Aborted."
+        exit 0
+    fi
+fi
+
+print_info "Initializing project documentation for: $PROJECT_NAME"
+echo "  Project: $PROJECT_PATH"
+echo "  Docs: $DOCS_PATH"
+echo
+
+# Create docs directory
+mkdir -p "$DOCS_PATH"
+print_success "Created docs/ directory"
+
+# Create .obsidian directory
+mkdir -p "$DOCS_PATH/.obsidian"
+
+# Copy shared config if dotfiles available
+if [[ -d "$OBSIDIAN_CONFIG_DIR/shared-config" ]]; then
+    print_info "Copying Obsidian configuration from dotfiles..."
+    cp -r "$OBSIDIAN_CONFIG_DIR/shared-config"/* "$DOCS_PATH/.obsidian/"
+    print_success "Copied Obsidian config"
+else
+    print_warning "Dotfiles config not found, creating minimal .obsidian config"
+
+    # Create minimal config
+    cat > "$DOCS_PATH/.obsidian/app.json" <<'EOF'
+{
+  "vimMode": true
+}
+EOF
+
+    cat > "$DOCS_PATH/.obsidian/appearance.json" <<'EOF'
+{
+  "baseFontSize": 16
+}
+EOF
+
+    cat > "$DOCS_PATH/.obsidian/core-plugins.json" <<'EOF'
+[
+  "file-explorer",
+  "global-search",
+  "switcher",
+  "graph",
+  "backlink",
+  "outgoing-link",
+  "markdown-importer",
+  "word-count"
+]
+EOF
+
+    print_success "Created minimal Obsidian config"
+fi
+
+# Create .gitignore for docs
+cat > "$DOCS_PATH/.gitignore" <<'EOF'
+# Obsidian workspace files (machine-specific)
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+
+# Cache
+.obsidian/cache/
+.obsidian/*/cache/
+
+# System files
+.DS_Store
+EOF
+print_success "Created .gitignore"
+
+# Create README.md
+cat > "$DOCS_PATH/README.md" <<EOF
+# $PROJECT_NAME Documentation
+
+Project documentation maintained with Obsidian.
+
+## Contents
+
+- [Architecture](Architecture.md) - System architecture and design decisions
+- [Setup](Setup.md) - Development environment setup
+- [Contributing](Contributing.md) - How to contribute to this project
+
+## Viewing with Obsidian
+
+This directory can be opened as an Obsidian vault:
+1. Open Obsidian
+2. Click "Open folder as vault"
+3. Select the \`docs/\` directory
+
+## Structure
+
+- **Architecture.md** - High-level architecture, diagrams, design patterns
+- **Setup.md** - Getting started, prerequisites, installation
+- **Contributing.md** - Contribution guidelines, code standards
+- **ADRs/** - Architecture Decision Records (optional)
+
+EOF
+print_success "Created README.md"
+
+# Create Architecture.md
+cat > "$DOCS_PATH/Architecture.md" <<EOF
+# Architecture
+
+> Document the high-level architecture of $PROJECT_NAME
+
+## Overview
+
+Brief overview of the system architecture.
+
+## Components
+
+### Component 1
+
+Description of component...
+
+### Component 2
+
+Description of component...
+
+## Design Decisions
+
+Key architectural decisions and trade-offs.
+
+## Diagrams
+
+Add architecture diagrams here (use Mermaid or attach images).
+
+\`\`\`mermaid
+graph TD
+    A[Client] --> B[API]
+    B --> C[Database]
+\`\`\`
+
+## Related
+
+- [[Setup]] - Development setup
+- [[Contributing]] - How to contribute
+
+EOF
+print_success "Created Architecture.md"
+
+# Create Setup.md
+cat > "$DOCS_PATH/Setup.md" <<EOF
+# Setup
+
+Development environment setup for $PROJECT_NAME.
+
+## Prerequisites
+
+- List prerequisites here
+- Tools, SDKs, etc.
+
+## Installation
+
+1. Clone the repository
+2. Install dependencies
+3. Configure environment
+
+\`\`\`bash
+# Example commands
+git clone <repo-url>
+cd $PROJECT_NAME
+# Add your setup commands
+\`\`\`
+
+## Configuration
+
+Environment variables and configuration files.
+
+## Running Locally
+
+How to run the project locally.
+
+## Troubleshooting
+
+Common issues and solutions.
+
+## Related
+
+- [[Architecture]] - System architecture
+- [[Contributing]] - Contribution guidelines
+
+EOF
+print_success "Created Setup.md"
+
+# Create Contributing.md
+cat > "$DOCS_PATH/Contributing.md" <<EOF
+# Contributing
+
+Guidelines for contributing to $PROJECT_NAME.
+
+## Development Workflow
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
+
+## Code Standards
+
+- Code style guidelines
+- Linting and formatting
+- Testing requirements
+
+## Pull Request Process
+
+1. Ensure tests pass
+2. Update documentation
+3. Request review
+4. Address feedback
+
+## Commit Messages
+
+Use conventional commits:
+- \`feat:\` New feature
+- \`fix:\` Bug fix
+- \`docs:\` Documentation
+- \`refactor:\` Code refactoring
+- \`test:\` Tests
+
+## Related
+
+- [[Setup]] - Development setup
+- [[Architecture]] - Architecture overview
+
+EOF
+print_success "Created Contributing.md"
+
+# Create ADRs directory (optional)
+mkdir -p "$DOCS_PATH/ADRs"
+cat > "$DOCS_PATH/ADRs/README.md" <<'EOF'
+# Architecture Decision Records
+
+This directory contains Architecture Decision Records (ADRs) for this project.
+
+## What is an ADR?
+
+An ADR is a document that captures an important architectural decision along with its context and consequences.
+
+## Format
+
+```markdown
+# ADR-001: [Title]
+
+Date: YYYY-MM-DD
+
+## Status
+
+Proposed | Accepted | Deprecated | Superseded
+
+## Context
+
+What is the issue we're seeing that is motivating this decision?
+
+## Decision
+
+What is the change we're proposing and/or doing?
+
+## Consequences
+
+What becomes easier or more difficult as a result of this change?
+```
+
+## Index
+
+- ADR-001: [Example Decision](001-example.md)
+
+EOF
+print_success "Created ADRs directory"
+
+echo
+print_success "Project documentation initialized!"
+echo
+echo "Location: $DOCS_PATH"
+echo
+echo "Next steps:"
+echo "  1. Open docs/ as an Obsidian vault"
+echo "  2. Customize the documentation files"
+echo "  3. Link to this project from your main vault"
+echo "  4. Commit docs/ to your project repository"
+echo
+echo "To link from main vault:"
+echo "  Create a note in your vault-projects/ that links here"
+echo "  Example: [[file://$DOCS_PATH|$PROJECT_NAME Docs]]"

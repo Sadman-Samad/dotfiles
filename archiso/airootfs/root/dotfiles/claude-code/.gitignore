@@ -1,0 +1,10 @@
+# Machine-specific configuration with user stats, tips, and cached data
+# Contains MCP server configurations but also non-shareable data
+# Symlinked for convenience but not committed to git
+.claude.json
+
+# Environment variables with sensitive credentials
+# Copy from .env.template and fill with your actual values
+.env
+.env.local
+.env.*.local

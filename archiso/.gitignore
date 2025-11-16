@@ -1,0 +1,14 @@
+# Build artifacts
+work/
+*.iso
+*.iso.sig
+
+# Temporary files
+*.tmp
+*.log
+
+# Work directory (if built locally)
+/tmp/archiso-work/
+
+# Output directory
+out/
