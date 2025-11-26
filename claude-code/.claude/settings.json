@@ -1,6 +1,4 @@
 {
-  "enabledPlugins": {},
-  "alwaysThinkingEnabled": false,
   "hooks": {
     "Stop": [
       {
@@ -12,5 +10,7 @@
         ]
       }
     ]
-  }
+  },
+  "enabledPlugins": {},
+  "alwaysThinkingEnabled": false
 }

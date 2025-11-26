@@ -18,6 +18,9 @@ export PATH="$PATH:$HOME/.config/composer/vendor/bin"
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
+#Flutter
+# export PATH="$HOME/Dev/flutter/bin:$PATH"
+
 # Mason (Dart tooling)
 export PATH="$PATH":"$HOME/.pub-cache/bin"
 
