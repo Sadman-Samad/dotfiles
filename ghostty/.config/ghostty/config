@@ -3,7 +3,7 @@
 
 # Font Configuration
 font-family = JetbrainsMono Nerd Font
-font-size = 16
+font-size = 18
 
 # Window Configuration
 window-padding-x = 14
@@ -33,6 +33,9 @@ quit-after-last-window-closed = true
 
 # Shell Integration
 shell-integration = detect
+
+# Shell Integration
+theme = Catppuccin Mocha
 
 
 # Fallback custom colors if theme not available
