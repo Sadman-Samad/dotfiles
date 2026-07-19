@@ -73,6 +73,14 @@ tooltip label { color: @text; }
   padding: 0 12px;
   margin: 4px 0;
 }
+#custom-current-desktop {
+  color: @mauve;
+  background: alpha(@mauve, 0.12);
+  padding: 0 14px;
+  margin: 4px 4px;
+  border-radius: 10px;
+  font-weight: 700;
+}
 
 #clock {
   color: @lavender;

@@ -11,8 +11,7 @@
   "margin-right": 6,
 
   "modules-left": [
-    "hyprland/workspaces",
-    "hyprland/window"
+    "custom/current-desktop"
   ],
   "modules-center": [
     "clock"
@@ -25,6 +24,16 @@
     "pulseaudio",
     "tray"
   ],
+
+  "custom/current-desktop": {
+    "exec": "$HOME/dotfiles/waybar/.config/waybar/scripts/current_desktop.sh",
+    "exec-if": "bash -c '$HOME/dotfiles/waybar/.config/waybar/scripts/current_desktop.sh' | grep -q .",
+    "interval": 2,
+    "format": "{}",
+    "tooltip": true,
+    "on-click": "hyprctl dispatch workspace +1 2>/dev/null || true",
+    "on-click-right": "hyprctl dispatch workspace -1 2>/dev/null || true"
+  },
 
 
   "hyprland/workspaces": {
