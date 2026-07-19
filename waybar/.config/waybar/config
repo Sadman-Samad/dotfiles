@@ -31,8 +31,10 @@
     "interval": 2,
     "format": "{}",
     "tooltip": true,
-    "on-click": "hyprctl dispatch workspace +1 2>/dev/null || true",
-    "on-click-right": "hyprctl dispatch workspace -1 2>/dev/null || true"
+    "on-click": "$HOME/dotfiles/waybar/.config/waybar/scripts/switch_desktop.sh next",
+    "on-click-right": "$HOME/dotfiles/waybar/.config/waybar/scripts/switch_desktop.sh prev",
+    "on-scroll-up": "$HOME/dotfiles/waybar/.config/waybar/scripts/switch_desktop.sh next",
+    "on-scroll-down": "$HOME/dotfiles/waybar/.config/waybar/scripts/switch_desktop.sh prev"
   },
 
 
