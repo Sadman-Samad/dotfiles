@@ -1,5 +1,5 @@
 // Waybar config — Catppuccin Mocha, Hyprland
-// CPU/RAM/disk/temp/clock/battery/pulseaudio/workspaces/tray
+// CPU/RAM/disk/temp/clock/pulseaudio/workspaces/tray
 
 {
   "layer": "top",
@@ -23,9 +23,9 @@
     "memory",
     "disk",
     "pulseaudio",
-    "battery",
     "tray"
   ],
+
 
   "hyprland/workspaces": {
     "disable-scroll": true,
@@ -131,19 +131,6 @@
     "scroll-step": 2,
     "on-click": "pavucontrol",
     "tooltip-format": "{desc} — {volume}%"
-  },
-
-  "battery": {
-    "states": {
-      "warning": 30,
-      "critical": 15
-    },
-    "format": "{icon}  {capacity}%",
-    "format-charging": "󰂄  {capacity}%",
-    "format-plugged": "󰚥  {capacity}%",
-    "format-alt": "{icon}  {time}",
-    "format-icons": ["󰂃", "󰁻", "󰁽", "󰁿", "󰂁", "󰁹"],
-    "tooltip-format": "{timeTo} — {status}"
   },
 
   "tray": {
