@@ -1,5 +1,3 @@
-# Amazon Q pre block. Keep at the top of this file.
-[[ -f "${HOME}/Library/Application Support/amazon-q/shell/zshrc.pre.zsh" ]] && builtin source "${HOME}/Library/Application Support/amazon-q/shell/zshrc.pre.zsh"
 # Created by newuser for 5.9
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
 # Initialization code that may require console input (password prompts, [y/n]
@@ -8,10 +6,10 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
-if [[ -f "/opt/homebrew/bin/brew" ]];then
-  # If you're using macOS, you'll want this enabled
-  eval "$(/opt/homebrew/bin/brew shellenv)"
-fi
+# Ensure $SHELL reflects zsh (session env can lag behind chsh)
+export SHELL=/usr/bin/zsh
+
+# Homebrew (absent on Arch Linux)
 
 # Set the directory we want to store zinit and plugins
 ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"
@@ -97,10 +95,10 @@ zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
 alias ls='eza --color=always --long --git --no-permissions --no-user --no-time  --no-filesize  --icons=always'
 alias v='nvim .'
 alias vi='nvim'
-alias cd='z'
+alias zz='z'                # zoxide smart cd (alias cd='z' below keeps it transparent)
 alias t='tmux-se'
 alias c='clear'
-alias fv='nvim $(fd . -H ~ | fzf --algo=v1 -m --preview="bat --color=always {}")'
+alias fv='nvim $(fd . -H --exclude .git ~ | fzf --algo=v1 -m --preview="bat --color=always {}")'
 alias fp='tmux-se'
 
 
@@ -108,7 +106,7 @@ alias fp='tmux-se'
 
 export PATH="$HOME/dotfiles:$PATH"
 export PATH="$HOME/.local/script:$PATH"
-export PATH="$HOME/development/flutter/bin:$PATH"
+export PATH="/opt/flutter/bin:$PATH"
 # Shell integrations
 
 
@@ -175,7 +173,6 @@ _fzf_comprun() {
 eval "$(zoxide init --cmd cd zsh)"
 
 # Amazon Q post block. Keep at the bottom of this file.
-[[ -f "${HOME}/Library/Application Support/amazon-q/shell/zshrc.post.zsh" ]] && builtin source "${HOME}/Library/Application Support/amazon-q/shell/zshrc.post.zsh"
 
 # Shopify Hydrogen alias to local projects
-alias h2='$(npm prefix -s)/node_modules/.bin/shopify hydrogen'
+export PATH="/home/sadman/.local/bin:$PATH"

@@ -1,7 +1,7 @@
 #!/usr/bin/env zsh
 
 
-for folder in $(echo "bin,tmux,nvim,zsh,alacritty" | sed "s/,/ /g"); do
+for folder in $(echo "bin,tmux,nvim,zsh,alacritty,ghostty,bash,git,hyprland,rofi,vscodium" | sed "s/,/ /g"); do
   echo "Removing $folder"
   stow -D $folder
 done
