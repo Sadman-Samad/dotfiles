@@ -101,17 +101,25 @@ install_packages() {
     # Core system packages
     local system_packages=(
         "base-devel" "git" "curl" "wget" "unzip" "zip"
-        "neovim" "tmux" "zsh" "alacritty" 
-        "fd" "ripgrep" "bat" "exa" "fzf" "zoxide"
-        "nodejs" "npm" "python" "python-pip"
-        # waybar + module deps
-        "waybar" "pacman-contrib" "jq" "ttf-jetbrains-mono-nerd"
+        "neovim" "tmux" "zsh" "fzf" "zoxide"
+        "fd" "ripgrep" "bat" "eza"
+        "nodejs" "npm" "python" "python-pip" "jq"
+        # terminals
+        "alacritty" "kitty" "wezterm"
+        # waybar + module deps (12h clock, weather via wttr.in, updates via checkupdates)
+        "waybar" "pacman-contrib" "ttf-jetbrains-mono-nerd"
+        # launcher + input method
+        "rofi" "fcitx5" "fcitx5-configtool"
+        # Hyprland ecosystem (referenced by hyprland/.config/*)
+        "hyprland" "hypridle" "swww" "gammastep" "wlogout"
+        "wl-clipboard" "cliphist" "polkit-gnome" "easyeffects"
+        "gnome-keyring" "geoclue" "kdeconnect" "bibata-cursor-theme"
     )
     
     # Desktop environment packages (conditional)
     local desktop_packages=()
     if [ "$XDG_CURRENT_DESKTOP" = "KDE" ]; then
-        desktop_packages+=("kde-applications" "konsole")
+        desktop_packages+=("kde-applications" "konsole" "spectacle" "dolphin")
     fi
     
     print_info "Installing system packages..."
@@ -126,6 +134,8 @@ install_packages() {
     local aur_packages=(
         "visual-studio-code-bin"
         "zinit-git"
+        "ghostty"
+        "ags"
     )
     
     # Add KDE-specific AUR packages
@@ -138,6 +148,8 @@ install_packages() {
         yay -S --needed --noconfirm "${aur_packages[@]}"
     elif command -v paru &> /dev/null; then
         paru -S --needed --noconfirm "${aur_packages[@]}"
+    else
+        print_warning "No AUR helper (yay/paru) found. Skipping AUR packages: ${aur_packages[*]}"
     fi
     
     print_success "Packages installed successfully"
@@ -162,8 +174,10 @@ apply_dotfiles() {
         
         # Backup key config files that might exist
         local configs=(
-            ".zshrc" ".tmux.conf" ".gitconfig"
-            ".config/nvim" ".config/alacritty" ".config/Code"
+            ".zshrc" ".bashrc" ".tmux.conf" ".gitconfig" ".p10k.zsh"
+            ".config/nvim" ".config/alacritty" ".config/ghostty"
+            ".config/kitty" ".config/wezterm" ".config/waybar"
+            ".config/hypr" ".config/rofi" ".config/fcitx5" ".config/Code"
         )
         
         for config in "${configs[@]}"; do

@@ -1,0 +1,16 @@
+[Battery][SuspendSession]
+IdleTime=0
+value=0
+
+[Battery][DPMSControl][DisplayIdleTimeout]
+value=0
+
+[AC][SuspendSession]
+IdleTime=0
+value=0
+
+[AC][DPMSControl][DisplayIdleTimeout]
+value=0
+
+[AC][DimDisplay]
+value=0
