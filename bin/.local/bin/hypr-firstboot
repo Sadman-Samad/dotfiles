@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+# First-boot helper — run after logging into Hyprland for the first time.
+#
+# Usage:  hypr-firstboot
+#
+# This script:
+#   1. Runs full health check
+#   2. Reloads Hyprland config (picks up any post-login state)
+#   3. Triggers wallpaper, bar, notifications explicitly if missing
+#   4. Prints a state summary
+
+set -u
+
+c_green=$'\033[32m'; c_red=$'\033[31m'; c_yellow=$'\033[33m'; c_off=$'\033[0m'
+ok="${c_green}✓${c_off}"; bad="${c_red}✗${c_off}"; warn="${c_yellow}!${c_off}"
+
+echo "=== Hyprland first-boot helper ==="
+echo ""
+
+# 1. Compositor alive?
+if hyprctl version >/dev/null 2>&1; then
+  echo "${ok} Hyprland is running: $(hyprctl version | head -1)"
+else
+  echo "${bad} Hyprland not reachable — this script must run from inside Hyprland."
+  exit 1
+fi
+
+# 2. Reload config (picks up env changes, verifies parser on live session)
+echo ""
+echo "Reloading config..."
+hyprctl reload
+sleep 1
+errors=$(hyprctl rollinglog 2>&1 | grep -iE "error|fail" | grep -v "xkbcomp" || true)
+if [ -n "$errors" ]; then
+  echo "${warn} Config had errors after reload:"
+  echo "$errors"
+else
+  echo "${ok} Config reloaded clean"
+fi
+
+# 3. Ensure each autostart is actually running; restart if missing
+echo ""
+echo "Checking autostart services..."
+declare -A services=(
+  [waybar]="waybar"
+  [hyprpaper]="hyprpaper"
+  [swaync]="swaync"
+  [hypridle]="hypridle"
+  [nm-applet]="nm-applet --indicator"
+)
+for proc in "${!services[@]}"; do
+  cmd="${services[$proc]}"
+  if pgrep -x "$proc" >/dev/null 2>&1; then
+    echo "${ok} $proc running"
+  else
+    echo "${bad} $proc NOT running — launching: $cmd"
+    (exec -a "$proc" $cmd) &
+    disown
+  fi
+done
+
+# polkit agent (special: binary is hyprpolkitagent, process is hyprpolkitagent)
+if pgrep -f hyprpolkitagent >/dev/null 2>&1; then
+  echo "${ok} hyprpolkitagent running"
+else
+  echo "${bad} hyprpolkitagent NOT running — launching"
+  /usr/libexec/hyprpolkitagent &
+  disown
+fi
+
+# cliphist
+if pgrep -f "wl-paste.*cliphist" >/dev/null 2>&1; then
+  echo "${ok} cliphist running"
+else
+  echo "${bad} cliphist NOT running — launching"
+  wl-paste --watch cliphist store &
+  disown
+fi
+
+# 4. Quick functional test
+echo ""
+echo "Functional checks..."
+hyprctl monitors | grep -q Monitor && echo "${ok} Monitors detected" || echo "${bad} No monitors"
+hyprctl workspaces | grep -q ID && echo "${ok} Workspaces initialized" || echo "${bad} No workspaces"
+hyprctl binds | grep -q "modcode" && echo "${ok} Keybindings loaded" || echo "${bad} No binds"
+test -n "$WAYLAND_DISPLAY" && echo "${ok} Wayland display: $WAYLAND_DISPLAY" || echo "${bad} No Wayland display"
+test -S "$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket.sock" \
+  && echo "${ok} Hyprland socket exists" \
+  || echo "${bad} Hyprland socket missing"
+
+# 5. Theme check
+echo ""
+echo "Theme checks..."
+hyprctl getoption cursor:icon | grep -q catppuccin && echo "${ok} Cursor theme set" || echo "${warn} Cursor theme not applied"
+fc-list | grep -q "JetBrainsMono Nerd Font" && echo "${ok} JetBrainsMono Nerd Font available" || echo "${bad} Font missing"
+
+echo ""
+echo "=== Done. If all green, safe to remove GNOME. ==="
+echo "    Run:  hypr-verify   (more thorough)"
+echo "    Emergency rollback:  sudo hypr-emergency-rollback"
