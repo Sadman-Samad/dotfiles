@@ -1,0 +1,186 @@
+/* Waybar — Catppuccin Mocha */
+/* palette: https://github.com/catppuccin/catppuccin */
+
+@define-color base     #1e1e2e;
+@define-color mantle   #181825;
+@define-color crust    #11111b;
+@define-color text     #cdd6f4;
+@define-color subtext  #a6adc8;
+@define-color surface  #313244;
+@define-color overlay  #45475a;
+@define-color muted    #7f849c;
+
+@define-color rosewater #f5e0dc;
+@define-color flamingo  #f2cdcd;
+@define-color pink      #f5c2e7;
+@define-color mauve     #cba6f7;
+@define-color red       #f38ba8;
+@define-color maroon    #eba0ac;
+@define-color peach     #fab387;
+@define-color yellow    #f9e2af;
+@define-color green     #a6e3a1;
+@define-color teal      #94e2d5;
+@define-color sky       #89dceb;
+@define-color sapphire  #74c7ec;
+@define-color blue      #89b4fa;
+@define-color lavender  #b4befe;
+
+* {
+  border: none;
+  border-radius: 0;
+  font-family: "JetBrainsMono Nerd Font", "Symbols Nerd Font", monospace;
+  font-size: 14px;
+  font-weight: 600;
+  min-height: 0;
+}
+
+window#waybar {
+  background-color: rgba(30, 30, 46, 0.85);
+  color: @text;
+  border-radius: 14px;
+}
+
+tooltip {
+  background-color: rgba(24, 24, 37, 0.95);
+  border: 1px solid @surface;
+  border-radius: 8px;
+  color: @text;
+}
+tooltip label { color: @text; }
+
+#workspaces button {
+  padding: 0 10px;
+  color: @muted;
+  background: transparent;
+  border-radius: 8px;
+  margin: 4px 2px;
+}
+#workspaces button:hover {
+  background: rgba(255,255,255,0.06);
+  color: @text;
+}
+#workspaces button.active {
+  color: @mauve;
+  background: alpha(@mauve, 0.15);
+}
+#workspaces button.urgent {
+  color: @red;
+  background: alpha(@red, 0.18);
+}
+
+#window {
+  color: @subtext;
+  padding: 0 12px;
+  margin: 4px 0;
+}
+#custom-current-desktop {
+  color: @mauve;
+  background: alpha(@mauve, 0.12);
+  padding: 0 14px;
+  margin: 4px 4px;
+  border-radius: 10px;
+  font-weight: 700;
+}
+
+#custom-weather {
+  color: @sky;
+  background: alpha(@sky, 0.10);
+  padding: 0 12px;
+  margin: 4px 2px;
+  border-radius: 10px;
+}
+#custom-updates {
+  color: @blue;
+  background: alpha(@blue, 0.10);
+  padding: 0 12px;
+  margin: 4px 2px;
+  border-radius: 10px;
+}
+#custom-updates.pending {
+  color: @yellow;
+  background: alpha(@yellow, 0.18);
+}
+#custom-updates.updated {
+  color: @green;
+  background: alpha(@green, 0.12);
+}
+
+#clock {
+  color: @lavender;
+  background: alpha(@lavender, 0.10);
+  padding: 0 14px;
+  margin: 4px 4px;
+  border-radius: 10px;
+}
+
+#cpu {
+  color: @peach;
+  background: alpha(@peach, 0.10);
+  padding: 0 12px;
+  margin: 4px 2px;
+  border-radius: 10px;
+}
+#temperature {
+  color: @yellow;
+  background: alpha(@yellow, 0.10);
+  padding: 0 12px;
+  margin: 4px 2px;
+  border-radius: 10px;
+}
+#temperature.critical {
+  color: @red;
+  background: alpha(@red, 0.18);
+}
+#memory {
+  color: @green;
+  background: alpha(@green, 0.10);
+  padding: 0 12px;
+  margin: 4px 2px;
+  border-radius: 10px;
+}
+#disk {
+  color: @sky;
+  background: alpha(@sky, 0.10);
+  padding: 0 12px;
+  margin: 4px 2px;
+  border-radius: 10px;
+}
+#pulseaudio {
+  color: @maroon;
+  background: alpha(@maroon, 0.10);
+  padding: 0 12px;
+  margin: 4px 2px;
+  border-radius: 10px;
+}
+#pulseaudio.muted {
+  color: @muted;
+  background: alpha(@muted, 0.10);
+}
+#battery {
+  color: @teal;
+  background: alpha(@teal, 0.10);
+  padding: 0 12px;
+  margin: 4px 2px;
+  border-radius: 10px;
+}
+#battery.warning {
+  color: @yellow;
+  background: alpha(@yellow, 0.18);
+}
+#battery.critical {
+  color: @red;
+  background: alpha(@red, 0.20);
+}
+#battery.charging {
+  color: @green;
+  background: alpha(@green, 0.15);
+}
+
+#tray {
+  padding: 0 10px;
+  margin: 4px 4px;
+  border-radius: 10px;
+  background: alpha(@surface, 0.40);
+}
+#tray > .passive { -gtk-icon-effect: dim; }
+#tray > .needs-attention { -gtk-icon-effect: highlight; }

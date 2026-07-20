@@ -104,6 +104,8 @@ install_packages() {
         "neovim" "tmux" "zsh" "alacritty" 
         "fd" "ripgrep" "bat" "exa" "fzf" "zoxide"
         "nodejs" "npm" "python" "python-pip"
+        # waybar + module deps
+        "waybar" "pacman-contrib" "jq" "ttf-jetbrains-mono-nerd"
     )
     
     # Desktop environment packages (conditional)

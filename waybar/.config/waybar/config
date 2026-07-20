@@ -1,0 +1,138 @@
+// Waybar config — Catppuccin Mocha, Hyprland
+// CPU/RAM/disk/temp/clock/pulseaudio/workspaces/tray
+
+{
+  "layer": "top",
+  "position": "top",
+  "height": 32,
+  "spacing": 6,
+  "margin-top": 4,
+  "margin-left": 6,
+  "margin-right": 6,
+
+  "modules-left": [
+    "custom/current-desktop",
+    "custom/weather"
+  ],
+  "modules-center": [
+    "clock"
+  ],
+  "modules-right": [
+    "custom/updates",
+    "cpu",
+    "temperature",
+    "memory",
+    "disk",
+    "network",
+    "pulseaudio",
+    "tray"
+  ],
+
+  "custom/current-desktop": {
+    "exec": "~/.config/waybar/scripts/current_desktop.sh",
+    "exec-if": "bash -c '~/.config/waybar/scripts/current_desktop.sh' | grep -q .",
+    "interval": 2,
+    "format": "{}",
+    "tooltip": true,
+    "on-click": "~/.config/waybar/scripts/switch_desktop.sh next",
+    "on-click-right": "~/.config/waybar/scripts/switch_desktop.sh prev",
+    "on-scroll-up": "~/.config/waybar/scripts/switch_desktop.sh next",
+    "on-scroll-down": "~/.config/waybar/scripts/switch_desktop.sh prev"
+  },
+
+  "custom/weather": {
+    "exec": "~/.config/waybar/scripts/weather.sh",
+    "interval": 300,
+    "return-type": "json",
+    "format": "{}",
+    "tooltip": true
+  },
+
+
+  "clock": {
+    "format": "󰥔  {:%I:%M %p}",
+    "format-alt": "󰃭  {:%A %d %B %Y  •  %I:%M %p}",
+    "tooltip-format": "<tt><small>{calendar}</small></tt>",
+    "calendar": {
+      "mode": "month",
+      "weeks-pos": "left",
+      "format": {
+        "months": "<span color='#cba6f7'><b>{}</b></span>",
+        "days": "<span color='#cdd6f4'>{}</span>",
+        "weeks": "<span color='#7f849c'>W{}</span>",
+        "weekdays": "<span color='#89b4fa'><b>{}</b></span>",
+        "today": "<span color='#f38ba8'><b><u>{}</u></b></span>"
+      }
+    },
+    "actions": {
+      "on-click-right": "mode"
+    }
+  },
+  "custom/updates": {
+    "exec": "~/.config/waybar/scripts/updates-format.sh",
+    "interval": 3600,
+    "return-type": "json",
+    "format": "{}",
+    "tooltip": true,
+    "on-click": "foot bash -c 'sudo pacman -Syu; read -p \"Press Enter to close...\"'",
+    "return-on-click": 1
+  },
+
+  "cpu": {
+    "format": "  {usage}%",
+    "format-alt-click": "click",
+    "format-alt": "  {avg_frequency} GHz",
+    "tooltip": true,
+    "tooltip-format": "Per-thread load:\n{load}"
+  },
+
+  "temperature": {
+    "hwmon-path": "/sys/class/hwmon/hwmon1/temp1_input",
+    "critical-threshold": 80,
+    "format-critical": "󰸁  {temperatureC}°C",
+    "format": "󰔏  {temperatureC}°C"
+  },
+
+  "memory": {
+    "format": "  {}%",
+    "format-alt": "  {used:0.1f}G/{total:0.1f}G",
+    "tooltip-format": "Used {used} / {total} GiB ({percentage}%)\nSwap: {swapUsed} / {swapTotal} GiB"
+  },
+
+  "disk": {
+    "path": "/",
+    "format": "  {percentage_used}%",
+    "format-alt": "  {used}/{total}",
+    "tooltip-format": "{used} used / {total} total ({percentage_used}%) on {path}"
+  },
+
+  "network": {
+    "interface": "enp34s0",
+    "interval": 1,
+    "format-ethernet": "󰈀  ↓{bandwidthDownBits}  ↑{bandwidthUpBits}",
+    "format-alt": "󰈀  {ifname} {ipaddr}",
+    "format-alt-click": "click",
+    "format-disconnected": "󰅞  disconnected",
+    "tooltip-format": "{ifname}  ({linkspeed})\n{ipaddr}/{cidr}\n↓ {bandwidthDownBits}  ↑ {bandwidthUpBits}"
+  },
+
+  "pulseaudio": {
+    "format": "{icon}  {volume}%",
+    "format-muted": "󰖁  muted",
+    "format-bluetooth": "{icon}  {volume}%",
+    "format-bluetooth-muted": "󰖁  muted",
+    "format-icons": {
+      "headphone": "󰋋",
+      "headset": "󰋎",
+      "default": ["󰕿", "󰕾", "󰕾"]
+    },
+    "scroll-step": 2,
+    "on-click": "pwvucontrol",
+    "tooltip-format": "{desc} — {volume}%"
+  },
+
+  "tray": {
+    "icon-size": 18,
+    "spacing": 8
+  }
+}
