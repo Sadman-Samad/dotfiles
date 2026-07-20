@@ -1,0 +1,184 @@
+#!/usr/bin/env bash
+# hypr-cutover — remove GNOME apps (keep GDM as fallback), post-Hyprland verification.
+#
+# Run this ONLY after:
+#   1. You've logged into Hyprland via SDDM
+#   2. `hypr-firstboot` reported all green
+#
+# This script removes GNOME *user apps* but KEEPS:
+#   - gdm (fallback display manager — still selectable at SDDM if Hyprland breaks)
+#   - gnome-keyring (used by NetworkManager and many apps for secrets)
+#   - gnome-control-center (still useful under Hyprland for some settings)
+#   - gnome-settings-daemon (xsettings plugin — useful for GTK theming under Wayland)
+#   - Core libs (glib2/gtk4/etc — removing these breaks everything)
+#
+# Usage:
+#   hypr-cutover              # remove GNOME apps (safe)
+#   hypr-cutover --full       # also remove gnome-shell + gnome-session (aggressive)
+#   hypr-cutover --restore    # reinstall everything this script removed
+#
+# The removed-package list is saved to ~/.config/hypr/cutover-removed.txt
+# for audit and restore.
+
+set -euo pipefail
+
+REMOVED_LIST="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/cutover-removed.txt"
+TIER1_PKGS=(
+  gnome-app-list gnome-backgrounds gnome-boxes gnome-browser-connector
+  gnome-calculator gnome-calendar gnome-characters gnome-classic-session
+  gnome-clocks gnome-connections gnome-contacts gnome-epub-thumbnailer
+  gnome-extensions-app gnome-font-viewer gnome-initial-setup gnome-logs
+  gnome-maps gnome-software gnome-software-fedora-langpacks gnome-text-editor
+  gnome-tour gnome-tweaks gnome-user-docs gnome-weather
+  gnome-photos gnome-music gnome-terminal-nautilus yelp
+)
+TIER2_PKGS=(
+  gnome-shell gnome-shell-common
+  gnome-session gnome-session-wayland-session
+  gnome-shell-extension-apps-menu gnome-shell-extension-background-logo
+  gnome-shell-extension-common gnome-shell-extension-just-perfection
+  gnome-shell-extension-launch-new-instance gnome-shell-extension-places-menu
+  gnome-shell-extension-user-theme gnome-shell-extension-window-list
+)
+
+usage() {
+  cat <<EOF
+hypr-cutover — GNOME removal for Hyprland migration
+
+Usage:
+  hypr-cutover              Remove GNOME apps (safe, keeps GDM fallback)
+  hypr-cutover --full       Also remove gnome-shell + gnome-session (aggressive)
+  hypr-cutover --restore    Reinstall everything this script removed
+  hypr-cutover --list       Show what would be removed (dry run)
+
+After --full, GDM is still installed but will have no session to launch.
+SDDM remains the active display manager.
+EOF
+}
+
+c_green=$'\033[32m'; c_red=$'\033[31m'; c_yellow=$'\033[33m'; c_off=$'\033[0m'
+
+preflight() {
+  if [ "$(id -u)" = 0 ]; then
+    echo "${c_red}Run as your user (with sudo inside), not as root.${c_off}" >&2
+    exit 1
+  fi
+
+  # Verify Hyprland is actually working before we start ripping things out
+  if ! hyprctl version >/dev/null 2>&1; then
+    echo "${c_red}ERROR: hyprctl is not reachable.${c_off}" >&2
+    echo "This means Hyprland is not running. Aborting — run hypr-firstboot first." >&2
+    exit 1
+  fi
+
+  # SDDM must be the active DM
+  if ! systemctl is-enabled sddm >/dev/null 2>&1; then
+    echo "${c_red}ERROR: SDDM is not enabled.${c_off}" >&2
+    echo "Refusing to remove GNOME while GDM is the active display manager." >&2
+    exit 1
+  fi
+
+  # Hyprland session file must exist
+  if [ ! -f /usr/share/wayland-sessions/hyprland.desktop ]; then
+    echo "${c_red}ERROR: Hyprland session file missing.${c_off}" >&2
+    exit 1
+  fi
+
+  echo "${c_green}Preflight OK:${c_off} Hyprland running, SDDM enabled, session file present."
+}
+
+cmd_list() {
+  echo "Tier 1 (apps — would be removed by default):"
+  for p in "${TIER1_PKGS[@]}"; do rpm -q "$p" >/dev/null 2>&1 && echo "  $p"; done
+  echo ""
+  echo "Tier 2 (shell+session — removed only with --full):"
+  for p in "${TIER2_PKGS[@]}"; do rpm -q "$p" >/dev/null 2>&1 && echo "  $p"; done
+  echo ""
+  echo "${c_yellow}KEPT regardless:${c_off} gdm, gnome-keyring, gnome-control-center,"
+  echo "  gnome-settings-daemon, glib2, gtk3/4, gvfs, gstreamer, xdg-desktop-portal*"
+}
+
+cmd_remove() {
+  preflight
+  local full=0
+  [ "${1:-}" = "--full" ] && full=1
+
+  echo ""
+  echo "${c_yellow}This will remove GNOME packages.${c_off}"
+  if [ $full -eq 1 ]; then
+    echo "Mode: ${c_red}AGGRESSIVE${c_off} (also removes gnome-shell + gnome-session)"
+  else
+    echo "Mode: ${c_green}SAFE${c_off} (keeps GDM + core libs as fallback)"
+  fi
+  echo ""
+  read -rp "Proceed? [y/N] " confirm
+  [ "$confirm" = "y" ] || { echo "Aborted."; exit 0; }
+
+  # Record what we're about to remove
+  : > "$REMOVED_LIST"
+  local pkgs=()
+  for p in "${TIER1_PKGS[@]}"; do
+    if rpm -q "$p" >/dev/null 2>&1; then
+      pkgs+=("$p"); echo "$p" >> "$REMOVED_LIST"
+    fi
+  done
+  if [ $full -eq 1 ]; then
+    for p in "${TIER2_PKGS[@]}"; do
+      if rpm -q "$p" >/dev/null 2>&1; then
+        pkgs+=("$p"); echo "$p" >> "$REMOVED_LIST"
+      fi
+    done
+  fi
+
+  if [ ${#pkgs[@]} -eq 0 ]; then
+    echo "Nothing to remove — GNOME packages already absent."
+    exit 0
+  fi
+
+  echo ""
+  echo "Removing ${#pkgs[@]} packages (logged to $REMOVED_LIST)..."
+  sudo dnf5 remove -y "${pkgs[@]}" || {
+    echo "${c_red}dnf remove failed. Your system is unchanged.${c_off}" >&2
+    exit 1
+  }
+
+  echo ""
+  echo "${c_green}Cutover complete.${c_off}"
+  echo "  - GNOME apps removed: ${#pkgs[@]}"
+  echo "  - Removed list:       $REMOVED_LIST"
+  echo "  - Hyprland still:     $(hyprctl version | head -1)"
+  echo ""
+  echo "If Hyprland still works (try Super+D to open wofi), you're done."
+  echo "If something broke, restore with: hypr-cutover --restore"
+}
+
+cmd_restore() {
+  if [ ! -f "$REMOVED_LIST" ]; then
+    echo "${c_red}No removal log at $REMOVED_LIST — nothing to restore.${c_off}" >&2
+    exit 1
+  fi
+  local pkgs=()
+  while IFS= read -r p; do
+    if [ -n "$p" ] && ! rpm -q "$p" >/dev/null 2>&1; then
+      pkgs+=("$p")
+    fi
+  done < "$REMOVED_LIST"
+
+  if [ ${#pkgs[@]} -eq 0 ]; then
+    echo "All previously-removed packages are already installed."
+    exit 0
+  fi
+
+  echo "Reinstalling ${#pkgs[@]} packages..."
+  sudo dnf5 install -y "${pkgs[@]}"
+  echo "${c_green}Restore complete.${c_off}"
+}
+
+case "${1:-}" in
+  --full)   cmd_remove --full ;;
+  --list)   cmd_list ;;
+  --restore) cmd_restore ;;
+  --help|-h) usage ;;
+  "")       cmd_remove ;;
+  *)        usage; exit 1 ;;
+esac
