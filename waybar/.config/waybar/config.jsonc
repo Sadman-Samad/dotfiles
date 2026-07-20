@@ -18,8 +18,10 @@
     "tray",
     "pulseaudio",
     "network",
+    "network#speed",
     "cpu",
     "memory",
+    "disk",
     "temperature",
     "custom/power"
   ],
@@ -60,8 +62,8 @@
   },
 
   "clock": {
-    "format": " {:%H:%M}",
-    "format-alt": " {:%A, %B %d · %H:%M}",
+    "format": " {:%H:%M}",
+    "format-alt": " {:%A, %B %d · %H:%M}",
     "tooltip-format": "<tt><small>{calendar}</small></tt>",
     "calendar": {
       "mode": "year",
@@ -92,11 +94,26 @@
   },
 
   "network": {
-    "format-wifi": " {essid}",
+    "format-wifi": " {essid}",
     "format-ethernet": "  Connected",
     "format-disconnected": "⚠ Disconnected",
     "tooltip-format": "{ifname} — {ipaddr}",
     "max-length": 30
+  },
+
+  "network#speed": {
+    "format": "{ifname}",
+    "format-wifi": "󰒍 {bandwidthDownBits} 󰒋 {bandwidthUpBits}",
+    "format-ethernet": " {bandwidthDownBits}  {bandwidthUpBits}",
+    "format-disconnected": "",
+    "tooltip-format": "Down: {bandwidthDownBits} · Up: {bandwidthUpBits}",
+    "interval": 1
+  },
+  "disk": {
+    "path": "/",
+    "interval": 30,
+    "format": "󰋊 {percentage_used}%",
+    "tooltip-format": "{path} — {free} free of {total}"
   },
 
   "cpu": {

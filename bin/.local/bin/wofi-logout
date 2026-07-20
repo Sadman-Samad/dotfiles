@@ -2,10 +2,12 @@
 # wofi-logout — session menu (lock/logout/reboot/shutdown)
 # Called via $mainMod SHIFT E
 
-action=$(wofi --dmenu --prompt "Session" --cache-file=/dev/null << EOF
-  Lock
-﫼 Logout
-累 Reboot
+action=$(wofi --dmenu --prompt "Session" --cache-file=/dev/null \
+    --location top_right --xoffset 12 --yoffset 48 --lines 4 --width 200 \
+    << EOF
+  Lock
+ Logout
+ Reboot
 ⏻  Shutdown
 EOF
 )
