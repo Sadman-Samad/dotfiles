@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# Hyprland verification script — run this AFTER logging into Hyprland
+# Confirms all key components are working
+
+set -u
+PASS=0; FAIL=0
+
+check() {
+  local label="$1"; shift
+  if "$@" >/dev/null 2>&1; then
+    printf "  \033[32m✓\033[0m %s\n" "$label"
+    PASS=$((PASS+1))
+  else
+    printf "  \033[31m✗\033[0m %s\n" "$label"
+    FAIL=$((FAIL+1))
+  fi
+}
+
+echo "Hyprland verification — $(date)"
+echo "================================"
+
+echo ""
+echo "[Core compositor]"
+check "Hyprland is running" hyprctl version
+check "Hyprland socket exists" test -S "$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket.sock"
+check "NVIDIA DRM modeset=Y" bash -c 'cat /sys/module/nvidia_drm/parameters/modeset | grep -q Y'
+
+echo ""
+echo "[Session]"
+check "WAYLAND_DISPLAY set" bash -c 'test -n "$WAYLAND_DISPLAY"'
+check "XDG_CURRENT_DESKTOP=Hyprland" bash -c 'test "$XDG_CURRENT_DESKTOP" = Hyprland'
+
+echo ""
+echo "[Autostart services]"
+check "waybar running" pgrep -x waybar
+check "hyprpaper running" pgrep -x hyprpaper
+check "swaync running" pgrep -x swaync
+check "hypridle running" pgrep -x hypridle
+check "hyprpolkitagent running" pgrep -f hyprpolkitagent
+check "nm-applet running" pgrep -x nm-applet
+check "cliphist running" pgrep -f "cliphist\|wl-paste"
+
+echo ""
+echo "[Key binaries]"
+check "kitty" command -v kitty
+check "wofi" command -v wofi
+check "btop" command -v btop
+check "hyprshot" command -v hyprshot
+check "wofi-logout script" test -x ~/.local/bin/wofi-logout
+
+echo ""
+echo "[Theme]"
+check "Catppuccin cursor installed" test -d ~/.local/share/icons/catppuccin-mocha-dark-cursors
+check "Cursor env set" bash -c 'echo "$XCURSOR_THEME" | grep -q catppuccin'
+check "Wallpaper exists" test -f ~/.local/share/wallpapers/catppuccin-mocha.png
+check "JetBrainsMono Nerd Font" fc-list | grep -q "JetBrainsMono Nerd Font"
+
+echo ""
+echo "================================"
+echo "Passed: $PASS   Failed: $FAIL"
+echo ""
+if [ "$FAIL" -eq 0 ]; then
+  echo "✅ All checks passed — Hyprland fully operational."
+  echo "   Safe to proceed with GNOME removal (see ~/.local/bin/hypr-rollback-then-remove-gnome)"
+else
+  echo "⚠  $FAIL issue(s) found. Inspect before removing GNOME."
+fi

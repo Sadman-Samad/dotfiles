@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# EMERGENCY ROLLBACK script — run from a TTY or broken session
+#
+# Use this if Hyprland is broken and you want to return to GNOME.
+# Safe to run multiple times. Idempotent.
+#
+# From a TTY (Ctrl+Alt+F3):
+#   sudo bash ~/.local/bin/hypr-emergency-rollback
+#
+# Or from GNOME after logging in there from SDDM:
+#   bash ~/.local/bin/hypr-emergency-rollback
+
+set -e
+
+if [ "$EUID" -ne 0 ]; then
+  echo "Re-running with sudo..."
+  exec sudo -E bash "$0" "$@"
+fi
+
+echo "============================================="
+echo "  EMERGENCY ROLLBACK: SDDM → GDM (GNOME)"
+echo "============================================="
+echo ""
+echo "This will:"
+echo "  1. Disable SDDM"
+echo "  2. Enable GDM (GNOME Display Manager)"
+echo "  3. Set GNOME as default session"
+echo "  4. Leave all Hyprland packages installed (no removal)"
+echo ""
+echo "Hyprland configs at ~/.config/hypr/ are PRESERVED."
+echo "Hyprland session remains available in GDM session menu."
+echo ""
+read -p "Proceed? [y/N] " confirm
+[ "$confirm" = "y" ] || { echo "Aborted."; exit 0; }
+
+echo ""
+echo "[1/4] Disabling SDDM..."
+systemctl disable sddm 2>&1 || true
+
+echo "[2/4] Enabling GDM..."
+systemctl enable gdm 2>&1 || true
+
+echo "[3/4] Setting display-manager symlink..."
+ln -sf /usr/lib/systemd/system/gdm.service /etc/systemd/system/display-manager.service
+
+echo "[4/4] Setting GNOME as default session for user $(logname 2>/dev/null || echo sadman)..."
+USER_HOME=$(getent passwd sadman | cut -d: -f6)
+if [ -n "$USER_HOME" ]; then
+  mkdir -p "$USER_HOME/.config"
+  # Remove state file that remembers last session (forces GDM to show menu)
+  rm -f "$USER_HOME/.local/state/sddm/last_session" 2>/dev/null || true
+fi
+
+echo ""
+echo "============================================="
+echo "  Rollback complete."
+echo "============================================="
+echo ""
+echo "Reboot to return to GNOME:"
+echo "  systemctl reboot"
+echo ""
+echo "At GDM login, choose 'GNOME' from session menu."
