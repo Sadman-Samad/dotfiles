@@ -21,8 +21,6 @@
     "cpu",
     "memory",
     "temperature",
-    "backlight",
-    "battery",
     "custom/power"
   ],
 
@@ -113,26 +111,11 @@
   },
 
   "temperature": {
-    "thermal-zone": 2,
-    "format": " {temperatureC}°C",
+    "thermal-zone": 0,
+    "hwabs": "/sys/class/hwmon/hwmon1/temp1_input",
+    "format": " {temperatureC}°C",
     "critical-threshold": 80,
-    "format-critical": " {temperatureC}°C"
-  },
-
-  "backlight": {
-    "format": "{icon} {percent}%",
-    "format-icons": ["", ""]
-  },
-
-  "battery": {
-    "states": {
-      "warning": 30,
-      "critical": 15
-    },
-    "format": "{icon} {capacity}%",
-    "format-charging": " {capacity}%",
-    "format-plugged": " {capacity}%",
-    "format-icons": ["", "", "", "", ""]
+    "format-critical": " {temperatureC}°C"
   },
 
   "tray": {
