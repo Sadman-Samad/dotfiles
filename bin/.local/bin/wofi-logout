@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# wofi-logout — session menu (lock/logout/reboot/shutdown)
+# Called via $mainMod SHIFT E
+
+action=$(wofi --dmenu --prompt "Session" --cache-file=/dev/null << EOF
+  Lock
+﫼 Logout
+累 Reboot
+⏻  Shutdown
+EOF
+)
+
+case "$action" in
+    *Lock*)     hyprlock ;;
+    *Logout*)   hyprctl dispatch exit ;;
+    *Reboot*)   systemctl reboot ;;
+    *Shutdown*) systemctl poweroff ;;
+esac

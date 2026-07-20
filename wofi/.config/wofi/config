@@ -1,0 +1,24 @@
+# Wofi config — application launcher
+
+show=drun
+prompt=Search...
+filter_rate=50
+allow_markup=true
+no_actions=true
+halign=fill
+orientation=vertical
+content_halign=fill
+hide_scroll=true
+width=500
+lines=10
+image_size=32
+display_generic=false
+normal_window=false
+term=kitty
+cache_file=~/.cache/wofi-run.cache
+location=center
+yoffset=0
+xoffset=0
+stylesheet=~/.config/wofi/style.css
+key_expand=Tab
+key_exit=Escape
