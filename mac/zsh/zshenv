@@ -1,0 +1,2 @@
+export PATH="/Users/sadmansamad/flutter/bin:$PATH"
+. "$HOME/.cargo/env"

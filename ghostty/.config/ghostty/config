@@ -1,8 +1,0 @@
-# Shell
-command = /usr/bin/zsh
-
-# Match the rest of the rice (Catppuccin Mocha + JetBrainsMono Nerd Font)
-theme = Catppuccin Mocha
-font-family = JetBrainsMono Nerd Font
-font-size = 14
-background-opacity = 0.85

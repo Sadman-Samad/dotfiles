@@ -1,9 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Anime Wallpaper Slideshow
-Comment=Rotate trending SFW anime wallpapers every 30 minutes
-Exec=/home/sadman/dotfiles/bin/.local/script/wallpaper_slideshow.sh 1800
-Terminal=false
-NoDisplay=true
-X-KDE-autostart-phase=2
-X-KDE-autostart-after=plasmashell

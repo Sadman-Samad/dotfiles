@@ -1,0 +1,27 @@
+# Minimal desktop-app bundle for the 2017 Mac (macOS 13 Ventura)
+# Generated from `brew bundle dump`, trimmed to desktop essentials.
+
+tap "felixkratz/formulae", "https://github.com/FelixKratz/homebrew-formulae"
+tap "nikitabobko/tap"
+
+# Window manager (i3-like tiling)
+cask "nikitabobko/tap/aerospace", trusted: true
+
+# Status bar / menu bar customization
+brew "felixkratz/formulae/sketchybar", trusted: true
+cask "stats"
+
+# Terminals
+cask "ghostty"
+cask "kitty"
+
+# Fonts
+cask "font-hack-nerd-font"
+cask "font-jetbrains-mono-nerd-font"
+
+# Shell / fuzzy finder / prompt helpers
+brew "fzf"
+brew "git"
+brew "tmux"
+brew "lazygit"
+brew "cliclick"
