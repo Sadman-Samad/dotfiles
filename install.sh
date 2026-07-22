@@ -273,6 +273,21 @@ setup_development() {
     print_success "Development environment setup complete"
 }
 
+# Setup swap + OOM protection (prevents system hangs on RAM pressure)
+setup_swap() {
+    print_header "Setting Up Swap & Memory Protection"
+    
+    local swap_script="$HOME/.local/script/setup-swap"
+    if [ -x "$swap_script" ]; then
+        print_info "Running swap setup script..."
+        "$swap_script"
+        print_success "Swap and OOM protection configured"
+    else
+        print_warning "setup-swap script not found at $swap_script"
+        print_warning "Run manually after stowing system package"
+    fi
+}
+
 # Post-installation instructions
 post_install() {
     print_header "Installation Complete!"
@@ -303,6 +318,8 @@ post_install() {
     if [ "$XDG_CURRENT_DESKTOP" = "KDE" ]; then
         echo "- KDE configs: ~/.config/kwin*, ~/.config/plasma*"
     fi
+
+    echo "- Swap & memory protection: /.swapfile + systemd-oomd"
     
     echo
     print_success "Enjoy your new development environment!"
@@ -329,6 +346,7 @@ main() {
     setup_zsh
     setup_kde
     setup_development
+    setup_swap
     post_install
 }
 

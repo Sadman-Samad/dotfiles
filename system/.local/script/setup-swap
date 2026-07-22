@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+#
+# setup-swap — create/enable BTRFS swapfile + OOM protection
+# Prevents system hangs when RAM fills up.
+#
+# Designed for: Arch Linux + BTRFS root
+# Safe to re-run: detects existing swap and skips.
+#
+set -euo pipefail
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+info()    { echo -e "${BLUE}[INFO]${NC} $*"; }
+success() { echo -e "${GREEN}[OK]${NC} $*"; }
+warn()    { echo -e "${YELLOW}[WARN]${NC} $*"; }
+error()   { echo -e "${RED}[ERROR]${NC} $*"; }
+
+SWAPFILE="/.swapfile"
+SWAP_SIZE="8G"
+
+# --- Prerequisites ----------------------------------------------------------
+
+if [[ ! -f /etc/arch-release ]]; then
+    warn "Not Arch Linux — proceeding anyway"
+fi
+
+if ! findmnt -no FSTYPE / | grep -q btrfs; then
+    error "Root filesystem is not BTRFS. This script uses btrfs mkswapfile."
+    error "For ext4/xfs use: fallocate -l ${SWAP_SIZE} ${SWAPFILE} && chmod 600 ${SWAPFILE} && mkswap ${SWAPFILE}"
+    exit 1
+fi
+
+TOTAL_RAM_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+TOTAL_RAM_GB=$(( TOTAL_RAM_KB / 1024 / 1024 ))
+info "Detected RAM: ${TOTAL_RAM_GB} GB"
+
+# --- Swapfile ---------------------------------------------------------------
+
+if swapon --show | grep -q "${SWAPFILE}"; then
+    success "Swap already active at ${SWAPFILE}"
+else
+    info "Creating ${SWAP_SIZE} swapfile at ${SWAPFILE} (BTRFS no-CoW)..."
+
+    if [[ -f "${SWAPFILE}" ]]; then
+        info "Swapfile exists but not active — recreating"
+        sudo rm -f "${SWAPFILE}"
+    fi
+
+    sudo btrfs filesystem mkswapfile --size "${SWAP_SIZE}" --uuid clear "${SWAPFILE}"
+    sudo swapon "${SWAPFILE}"
+    success "Swap enabled (${SWAP_SIZE})"
+fi
+
+# --- Persist in fstab -------------------------------------------------------
+
+if grep -q "${SWAPFILE}" /etc/fstab; then
+    success "fstab already has swap entry"
+else
+    info "Adding swap to /etc/fstab"
+    echo "${SWAPFILE} none swap defaults 0 0" | sudo tee -a /etc/fstab > /dev/null
+    success "fstab updated — swap will persist across reboots"
+fi
+
+# --- Sysctl tuning ----------------------------------------------------------
+
+SYSCTL_CONF="/etc/sysctl.d/99-memory.conf"
+
+if [[ -f "${SYSCTL_CONF}" ]]; then
+    success "Sysctl tuning already present at ${SYSCTL_CONF}"
+else
+    info "Applying memory sysctl tuning..."
+    cat <<'EOF' | sudo tee "${SYSCTL_CONF}" > /dev/null
+# Desktop memory tuning — prevent hangs on RAM pressure
+vm.swappiness=10
+vm.vfs_cache_pressure=50
+EOF
+    sudo sysctl -p "${SYSCTL_CONF}" > /dev/null 2>&1 || true
+    success "Sysctl config written"
+fi
+
+success "Swappiness: $(cat /proc/sys/vm/swappiness)"
+
+
+# --- OOM daemon -------------------------------------------------------------
+
+if systemctl is-active --quiet systemd-oomd; then
+    success "systemd-oomd is running"
+else
+    info "Enabling systemd-oomd (kills runaway processes before hang)..."
+    sudo systemctl enable --now systemd-oomd
+    success "systemd-oomd enabled and started"
+fi
+
+# --- Summary ----------------------------------------------------------------
+
+success "Memory protection setup complete:"
+echo "  Swap:      $(swapon --show 2>/dev/null | tail -1 | awk '{print $3}' || echo '?')"
+echo "  Swappiness: $(cat /proc/sys/vm/swappiness)"
+echo "  OOM daemon: $(systemctl is-active systemd-oomd)"
+echo
+free -h
