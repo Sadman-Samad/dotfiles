@@ -127,7 +127,7 @@ alias ccm='claude mcp'         # MCP server configuration
 
 export PATH="$HOME/dotfiles:$PATH"
 export PATH="$HOME/.local/script:$PATH"
-export PATH="$HOME/development/flutter/bin:$PATH"
+export PATH="/opt/flutter/bin:$PATH"
 export PATH="$PATH:$HOME/.config/composer/vendor/bin"
 # bun
 export BUN_INSTALL="$HOME/.bun"
@@ -245,3 +245,16 @@ shorebird() {
 export SDKMAN_DIR="$HOME/.sdkman"
 [[ -s "$HOME/.sdkman/bin/sdkman-init.sh" ]] && source "$HOME/.sdkman/bin/sdkman-init.sh"
 
+export PATH="/home/sadman/.local/bin:$PATH"
+
+# Android SDK & JDK
+export ANDROID_HOME=/home/sadman/android-sdk
+export ANDROID_SDK_ROOT=/home/sadman/android-sdk
+export JAVA_HOME=/home/sadman/android-sdk/jdk-17.0.13+11
+export PATH="$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
+
+# Java/Android SDK
+export JAVA_HOME=/home/sadman/android-sdk/jdk-17.0.13+11
+export ANDROID_HOME=/home/sadman/android-sdk
+export ANDROID_SDK_ROOT=/home/sadman/android-sdk
+export PATH="$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$PATH"

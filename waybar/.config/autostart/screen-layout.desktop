@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Screen Layout Autostart
+Comment=Launch Ghostty/Chromium Work/kitty/Chromium lian on their desktops at login
+Exec=screen-layout
+Icon=preferences-desktop
+Terminal=false
+X-KDE-autostart-phase=2
+X-KDE-autostart-after=plasma
+Categories=Utility;
+NoDisplay=true
