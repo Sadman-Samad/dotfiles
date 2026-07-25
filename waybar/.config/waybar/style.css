@@ -17,7 +17,7 @@ window#waybar {
 
 /* Pill-shaped modules */
 #workspaces, #window, #clock, #pulseaudio, #network, #cpu, #memory,
-#temperature, #backlight, #battery, #tray, #custom-power,
+#temperature, #backlight, #battery, #tray, #custom-power, #custom-weather,
 #disk, #network.speed {
   background: @base;
   border-radius: 12px;
@@ -70,6 +70,7 @@ window#waybar {
 #battery.critical { color: @red; }
 #network.speed { color: @sky; }
 #disk { color: @green; }
+#custom-weather { color: @sky; }
 #battery.charging { color: @blue; }
 #tray { padding: 0 8px; }
 #custom-power {

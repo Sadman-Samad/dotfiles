@@ -18,11 +18,11 @@
     "tray",
     "pulseaudio",
     "network",
-    "network#speed",
     "cpu",
     "memory",
     "disk",
     "temperature",
+    "custom/weather",
     "custom/power"
   ],
 
@@ -54,7 +54,7 @@
 
   "hyprland/window": {
     "format": "{}",
-    "max-length": 50,
+    "max-length": 40,
     "rewrite": {
       "(.*) — Mozilla Firefox": " $1",
       "(.*) — Kitty": " $1"
@@ -62,8 +62,8 @@
   },
 
   "clock": {
-    "format": " {:%H:%M}",
-    "format-alt": " {:%A, %B %d · %H:%M}",
+    "format": " {:%I:%M %p}",
+    "format-alt": " {:%a %b %d · %I:%M %p}",
     "tooltip-format": "<tt><small>{calendar}</small></tt>",
     "calendar": {
       "mode": "year",
@@ -85,7 +85,7 @@
 
   "pulseaudio": {
     "format": "{icon} {volume}%",
-    "format-muted": " muted",
+    "format-muted": " muted",
     "format-icons": {
       "headphone": "",
       "default": ["", "", ""]
@@ -94,53 +94,55 @@
   },
 
   "network": {
-    "format-wifi": " {essid}",
-    "format-ethernet": "  Connected",
-    "format-disconnected": "⚠ Disconnected",
-    "tooltip-format": "{ifname} — {ipaddr}",
-    "max-length": 30
+    "format-wifi": " {essid}",
+    "format-ethernet": " Connected",
+    "format-disconnected": " Disconnected",
+    "tooltip-format": "{ifname} — {ipaddr} · ↓ {bandwidthDownBits} ↑ {bandwidthUpBits}",
+    "max-length": 28
   },
 
-  "network#speed": {
-    "format": "{ifname}",
-    "format-wifi": "󰒍 {bandwidthDownBits} 󰒋 {bandwidthUpBits}",
-    "format-ethernet": " {bandwidthDownBits}  {bandwidthUpBits}",
-    "format-disconnected": "",
-    "tooltip-format": "Down: {bandwidthDownBits} · Up: {bandwidthUpBits}",
-    "interval": 1
-  },
   "disk": {
     "path": "/",
     "interval": 30,
-    "format": "󰋊 {percentage_used}%",
+    "format": "󰎈 {percentage_used}%",
     "tooltip-format": "{path} — {free} free of {total}"
   },
 
   "cpu": {
-    "format": " {usage}%",
+    "format": " {usage}%",
     "interval": 2,
     "tooltip": false
   },
 
   "memory": {
-    "format": " {percentage}%",
+    "format": "󰍚 {percentage}%",
     "interval": 10
   },
 
   "temperature": {
     "thermal-zone": 0,
-    "hwabs": "/sys/class/hwmon/hwmon1/temp1_input",
-    "format": " {temperatureC}°C",
+    "hwmon-path": "/sys/class/hwmon/hwmon1/temp1_input",
+    "format": " {temperatureC}°C",
     "critical-threshold": 80,
-    "format-critical": " {temperatureC}°C"
+    "format-critical": "\uf2c8 {temperatureC}°C"
   },
 
   "tray": {
     "spacing": 10
   },
+  "custom/weather": {
+    "format": "{}",
+    "return-type": "json",
+    "tooltip": true,
+    "interval": 600,
+    "exec": "~/.config/waybar/scripts/wttr.sh",
+    "exec-if": "command -v curl >/dev/null",
+    "return-on-failure": false
+  },
+
 
   "custom/power": {
-    "format": "⏻",
+    "format": "",
     "on-click": "wofi-logout",
     "tooltip": false
   }
