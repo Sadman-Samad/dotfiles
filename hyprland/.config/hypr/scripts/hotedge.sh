@@ -31,11 +31,14 @@ resolve_geometry() {
     [[ -n "${h:-}" ]] && SCREEN_H="$h" && trigger_zone_y=$((SCREEN_H - EDGE_PX))
 }
 
-# Check for a live (non-zombie) nwg-drawer instance. We can't use plain
-# `pgrep -x` because it matches defunct/zombie processes too, which would
-# permanently block the trigger after the first launch.
+# Check for a live (non-zombie) instance of the configured launcher. We
+# can't use plain `pgrep -x` because it matches defunct/zombie processes
+# too, which would permanently block the trigger after the first launch.
+# Derive the process name from $COMMAND so this works for any launcher
+# (nwg-drawer, nwg-dock, wofi, …).
+CMD_BASE="$(basename "${COMMAND%% *}")"
 already_open() {
-    [[ -n "$(ps -e -o stat,comm | awk '$1 !~ /^Z/ && $2 == "nwg-drawer"')" ]]
+    [[ -n "$(ps -e -o stat,comm | awk -v c="$CMD_BASE" '$1 !~ /^Z/ && $2 == c')" ]]
 }
 
 resolve_geometry

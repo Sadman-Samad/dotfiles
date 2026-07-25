@@ -1,0 +1,4 @@
+#!/bin/sh
+# Launch gnome-control-center (Settings) on Hyprland.
+# Requires XDG_CURRENT_DESKTOP=GNOME + GDK_BACKEND=wayland to create a window.
+exec env XDG_CURRENT_DESKTOP=GNOME GDK_BACKEND=wayland gnome-control-center "$@"
