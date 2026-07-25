@@ -1,0 +1,31 @@
+[Default Applications]
+# Route all code/text files to nvim (instead of kitty-open / onlyoffice / chromium)
+text/plain=nvim.desktop
+text/english=nvim.desktop
+text/x-lua=nvim.desktop
+text/x-python=nvim.desktop
+application/x-shellscript=nvim.desktop
+application/x-sh=nvim.desktop
+text/x-c=nvim.desktop
+text/x-c++=nvim.desktop
+text/x-chdr=nvim.desktop
+text/x-c++hdr=nvim.desktop
+text/x-csrc=nvim.desktop
+text/x-makefile=nvim.desktop
+text/css=nvim.desktop
+text/html=nvim.desktop
+text/x-yaml=nvim.desktop
+application/x-yaml=nvim.desktop
+text/x-toml=nvim.desktop
+text/x-json=nvim.desktop
+application/json=nvim.desktop
+text/markdown=nvim.desktop
+text/x-moc=nvim.desktop
+text/x-pascal=nvim.desktop
+text/x-tcl=nvim.desktop
+text/x-tex=nvim.desktop
+text/x-java=nvim.desktop
+
+[Added Associations]
+# Keep these as fallbacks only
+application/x-shellscript=nvim.desktop;vim.desktop;
