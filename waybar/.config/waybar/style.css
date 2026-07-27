@@ -131,6 +131,21 @@ tooltip label { color: @text; }
   color: @red;
   background: alpha(@red, 0.18);
 }
+#custom-gpu {
+  color: @text;
+  background: alpha(@blue, 0.10);
+  padding: 0 12px;
+  margin: 4px 2px;
+  border-radius: 10px;
+}
+#custom-gpu.warn {
+  color: @peach;
+  background: alpha(@peach, 0.18);
+}
+#custom-gpu.critical {
+  color: @red;
+  background: alpha(@red, 0.20);
+}
 #memory {
   color: @green;
   background: alpha(@green, 0.10);
@@ -144,6 +159,25 @@ tooltip label { color: @text; }
   padding: 0 12px;
   margin: 4px 2px;
   border-radius: 10px;
+}
+#custom-ping {
+  color: @green;
+  background: alpha(@green, 0.10);
+  padding: 0 12px;
+  margin: 4px 2px;
+  border-radius: 10px;
+}
+#custom-ping.warn {
+  color: @peach;
+  background: alpha(@peach, 0.18);
+}
+#custom-ping.bad {
+  color: @red;
+  background: alpha(@red, 0.20);
+}
+#custom-ping.down {
+  color: @red;
+  background: alpha(@red, 0.20);
 }
 #pulseaudio {
   color: @maroon;

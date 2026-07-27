@@ -2,7 +2,7 @@
 // CPU/RAM/disk/temp/clock/pulseaudio/workspaces/tray
 
 {
-  "layer": "top",
+  "layer": "overlay",
   "position": "top",
   "height": 32,
   "spacing": 6,
@@ -20,10 +20,12 @@
   "modules-right": [
     "custom/updates",
     "cpu",
+    "custom/gpu",
     "temperature",
     "memory",
     "disk",
     "network",
+    "custom/ping",
     "pulseaudio",
     "tray"
   ],
@@ -93,6 +95,14 @@
     "format": "󰔏  {temperatureC}°C"
   },
 
+  "custom/gpu": {
+    "exec": "~/.config/waybar/scripts/gpu-fan.sh",
+    "interval": 3,
+    "return-type": "json",
+    "format": "{}",
+    "tooltip": true
+  },
+
   "memory": {
     "format": "  {}%",
     "format-alt": "  {used:0.1f}G/{total:0.1f}G",
@@ -114,6 +124,14 @@
     "format-alt-click": "click",
     "format-disconnected": "󰅞  disconnected",
     "tooltip-format": "{ifname}  ({linkspeed})\n{ipaddr}/{cidr}\n↓ {bandwidthDownBits}  ↑ {bandwidthUpBits}"
+  },
+
+  "custom/ping": {
+    "exec": "~/.config/waybar/scripts/ping.sh",
+    "interval": 10,
+    "return-type": "json",
+    "format": "{}",
+    "tooltip": true
   },
 
   "pulseaudio": {
