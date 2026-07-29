@@ -2,7 +2,8 @@
 // CPU/RAM/disk/temp/clock/pulseaudio/workspaces/tray
 
 {
-  "layer": "overlay",
+  "layer": "top",
+  "exclusive": false,
   "position": "top",
   "height": 32,
   "spacing": 6,
