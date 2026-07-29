@@ -81,6 +81,13 @@ tooltip label { color: @text; }
   border-radius: 10px;
   font-weight: 700;
 }
+#custom-window-title {
+  color: @text;
+  background: alpha(@subtext, 0.10);
+  padding: 0 12px;
+  margin: 4px 2px;
+  border-radius: 10px;
+}
 
 #custom-weather {
   color: @sky;

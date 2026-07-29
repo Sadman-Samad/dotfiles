@@ -1,0 +1,14 @@
+{
+    "KPackageStructure": "KWin/Script",
+    "KPlugin": {
+        "Id": "active-window-title",
+        "Name": "Active Window Title",
+        "Description": "Publishes the active window caption to a file for waybar",
+        "Version": "1.0",
+        "Category": "Window Management",
+        "License": "GPL",
+        "Authors": [{"Name": "local"}]
+    },
+    "X-Plasma-API": "javascript",
+    "X-Plasma-MainScript": "code/main.js"
+}

@@ -12,6 +12,7 @@
 
   "modules-left": [
     "custom/current-desktop",
+    "custom/window-title",
     "custom/weather"
   ],
   "modules-center": [
@@ -47,6 +48,13 @@
     "interval": 300,
     "return-type": "json",
     "format": "{}",
+    "tooltip": true
+  },
+
+  "custom/window-title": {
+    "exec": "~/.config/waybar/scripts/active-window-title.sh",
+    "return-type": "json",
+    "format": "  {}",
     "tooltip": true
   },
 
