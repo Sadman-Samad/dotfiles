@@ -8,8 +8,17 @@
  * Plasma 6 KWin scripting API.
  */
 
+var lastCls = "";
+
 function emit(window) {
     var cls = (window && window.resourceClass) ? window.resourceClass : "";
+    // On an empty desktop (no active window) keep showing the last app,
+    // like macOS.
+    if (cls === "" && lastCls !== "") {
+        cls = lastCls;
+    } else if (cls !== "") {
+        lastCls = cls;
+    }
     console.log("AWT\t" + cls);
 }
 
