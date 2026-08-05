@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# live-wallpaper.sh — play a video wallpaper on Hyprland via mpvpaper.
+#
+# Picks a random video from ~/.local/share/live-wallpapers/, or accepts a
+# specific file as $1. Loops forever, muted, on the bottom layer so it sits
+# behind all windows.
+#
+# Usage:
+#   live-wallpaper.sh              # random video
+#   live-wallpaper.sh video.mp4    # specific video
+set -euo pipefail
+
+WALLPAPER_DIR="${WALLPAPER_DIR:-$HOME/.local/share/live-wallpapers}"
+
+# Pick the target video.
+if [[ -n "${1:-}" ]]; then
+    video="$1"
+elif [[ -d "$WALLPAPER_DIR" ]]; then
+    video=$(find "$WALLPAPER_DIR" -type f \( -name '*.mp4' -o -name '*.webm' \) | shuf -n 1)
+else
+    echo "No wallpaper directory: $WALLPAPER_DIR" >&2
+    exit 1
+fi
+
+[[ -z "${video:-}" ]] && { echo "No video files found in $WALLPAPER_DIR" >&2; exit 1; }
+
+# Kill any previous mpvpaper / swww instance so we don't stack layers.
+pkill -x mpvpaper 2>/dev/null || true
+pkill -x swww-daemon 2>/dev/null || true
+
+# mpvpaper options:
+#   --layer bottom       : behind windows
+#   --fork               : detach
+#   mpv: --loop, --mute, no terminal, hardware-decoded if possible
+for output in $(hyprctl monitors -j | jq -r '.[].name'); do
+    mpvpaper -f -o "--no-config --loop --mute --hwdec=auto-safe --terminal=no" "$output" "$video" 2>/dev/null &
+done
+
+echo "Live wallpaper set: $(basename "$video")"
