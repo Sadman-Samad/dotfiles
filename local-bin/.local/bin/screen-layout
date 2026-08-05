@@ -1,0 +1,18 @@
+#!/bin/sh
+# Launch apps on their assigned workspaces at login.
+# Workspace assignment is enforced by Hyprland window rules in rules.conf:
+#   Workspace 1 — Ghostty
+#   Workspace 2 — Chromium
+#   Workspace 3 — Kitty
+#   Workspace 4 — Alacritty
+
+# Sequence launches with small gaps so each window is realized with its
+# resourceClass set before the next starts; window rules route them to the
+# correct workspace.
+ghostty --gtk-single-instance=true &
+sleep 1
+chromium &
+sleep 1
+kitty &
+sleep 1
+alacritty &
