@@ -70,18 +70,25 @@ def set_wallpaper(video_path: str):
 
 def parse_online_wallpapers(html: str):
     """Parse MoeWalls anime category HTML for wallpaper entries."""
-    entries = re.findall(
-        r'href="(https://moewalls\.com/anime/([^/]+)/?)"[^>]*>.*?'
-        r'src="(https://[^"]+-thumb\.jpg)"',
-        html, re.DOTALL)
+    # Links and thumbnails are in separate HTML elements, so extract them
+    # independently and match by slug.
+    raw_links = re.findall(r'href="(https://moewalls\.com/anime/([^/]+)/?)"', html)
+    raw_thumbs = {}
+    for thumb_url in re.findall(r'src="(https://[^"]+-thumb[^"]*\.jpg)"', html):
+        # /wp-content/uploads/2026/08/slug-name-thumb-364x205.jpg  →  slug-name
+        fname = thumb_url.rsplit("/", 1)[-1]
+        slug = re.sub(r'-thumb-\d+x\d+\.jpg$', "", fname)
+        raw_thumbs[slug] = thumb_url
+
     seen, results = set(), []
-    for page_url, slug, thumb_url in entries:
+    for page_url, slug in raw_links:
         if slug in seen:
             continue
         seen.add(slug)
         title = slug.replace("-", " ").title().replace(" Live Wallpaper", "")
         results.append({"title": title, "slug": slug,
-                        "page_url": page_url, "thumb_url": thumb_url})
+                        "page_url": page_url,
+                        "thumb_url": raw_thumbs.get(slug.replace("-live-wallpaper", ""), "")})
     return results
 
 
