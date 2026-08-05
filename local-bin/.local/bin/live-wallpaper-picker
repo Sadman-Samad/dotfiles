@@ -128,10 +128,12 @@ def set_wallpaper(video_path: str):
 def fetch_page(category: str, page: int):
     """Fetch one page of wallpapers from a MoeWalls category. Returns list of dicts."""
     if category == "all":
-        # Fetch from multiple categories in parallel
-        results = []
+        # Fetch from multiple categories in parallel, then interleave
+        # round-robin so the grid shows variety instead of 16 anime first.
+        per_cat = {}   # cat → list of wallpaper dicts
         threads = []
         lock = threading.Lock()
+        all_cats = ["anime", "games", "movies", "fantasy", "sci-fi", "landscape"]
 
         def _fetch_cat(cat):
             url = f"https://moewalls.com/category/{cat}/page/{page}/" if page > 1 else f"https://moewalls.com/category/{cat}/"
@@ -141,17 +143,26 @@ def fetch_page(category: str, page: int):
                 html = urllib.request.urlopen(req, timeout=15).read().decode("utf-8", "replace")
                 parsed = parse_category_html(html, cat)
                 with lock:
-                    results.extend(parsed)
+                    per_cat[cat] = parsed
             except Exception:
-                pass
+                with lock:
+                    per_cat[cat] = []
 
-        # Fetch top categories in parallel for "all"
-        for cat in ["anime", "games", "movies", "fantasy", "sci-fi", "landscape"]:
+        for cat in all_cats:
             t = threading.Thread(target=_fetch_cat, args=(cat,), daemon=True)
             threads.append(t)
             t.start()
         for t in threads:
             t.join()
+
+        # Round-robin: take one from each category in turn
+        results = []
+        max_len = max((len(v) for v in per_cat.values()), default=0)
+        for i in range(max_len):
+            for cat in all_cats:
+                items = per_cat.get(cat, [])
+                if i < len(items):
+                    results.append(items[i])
         return results
     else:
         url = (f"https://moewalls.com/category/{category}/page/{page}/"
