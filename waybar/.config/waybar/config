@@ -85,7 +85,7 @@
     "return-type": "json",
     "format": "{}",
     "tooltip": true,
-    "on-click": "foot bash -c 'sudo pacman -Syu; read -p \"Press Enter to close...\"'",
+    "on-click": "~/.config/waybar/scripts/waybar-update.sh",
     "return-on-click": 1
   },
 
