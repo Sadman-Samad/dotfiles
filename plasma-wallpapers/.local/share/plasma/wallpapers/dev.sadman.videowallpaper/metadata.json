@@ -1,0 +1,25 @@
+{
+    "KPackageStructure": "Plasma/Wallpaper",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "sadman@example.com",
+                "Name": "sadman"
+            }
+        ],
+        "Category": "",
+        "Description": "Looping video wallpaper (mp4/webm) powered by QtMultimedia",
+        "Icon": "preferences-desktop-wallpaper",
+        "Id": "dev.sadman.videowallpaper",
+        "License": "GPLv2+",
+        "Name": "Video Wallpaper",
+        "Version": "1.0.0",
+        "Website": "https://github.com/Sadman-Samad/dotfiles"
+    },
+    "Keywords": [
+        "video",
+        "wallpaper"
+    ],
+    "X-KDE-ParentApp": "org.kde.plasmashell",
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

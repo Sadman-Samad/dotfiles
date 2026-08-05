@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
-# live-wallpaper.sh — play a video wallpaper on Hyprland via mpvpaper.
+# live-wallpaper — set a video wallpaper on KDE Plasma (Wayland).
 #
-# Picks a random video from ~/.local/share/live-wallpapers/, or accepts a
-# specific file as $1. Loops forever, muted, on the bottom layer so it sits
-# behind all windows.
+# Plasma-native: drives the dev.sadman.videowallpaper QML plugin via the
+# PlasmaShell dbus interface (QtMultimedia inside plasmashell). No mpvpaper,
+# hyprctl, or wlroots dependency — works on KWin.
 #
 # Usage:
-#   live-wallpaper.sh              # random video
-#   live-wallpaper.sh video.mp4    # specific video
+#   live-wallpaper              # random video from WALLPAPER_DIR
+#   live-wallpaper video.mp4    # specific video
 set -euo pipefail
 
 WALLPAPER_DIR="${WALLPAPER_DIR:-$HOME/.local/share/live-wallpapers}"
+PLUGIN_ID="dev.sadman.videowallpaper"
 
 # Pick the target video.
 if [[ -n "${1:-}" ]]; then
@@ -24,16 +25,23 @@ fi
 
 [[ -z "${video:-}" ]] && { echo "No video files found in $WALLPAPER_DIR" >&2; exit 1; }
 
-# Kill any previous mpvpaper / swww instance so we don't stack layers.
-pkill -x mpvpaper 2>/dev/null || true
-pkill -x swww-daemon 2>/dev/null || true
+# Resolve to an absolute path the QML MediaPlayer can load.
+video=$(readlink -f -- "$video")
 
-# mpvpaper options:
-#   --layer bottom       : behind windows
-#   --fork               : detach
-#   mpv: --loop, --mute, no terminal, hardware-decoded if possible
-for output in $(hyprctl monitors -j | jq -r '.[].name'); do
-    mpvpaper -f -o "--no-config --loop --mute --hwdec=auto-safe --terminal=no" "$output" "$video" 2>/dev/null &
-done
+# Build the PlasmaShell script. JSON-encode the path to stay safe against
+# quotes/backslashes, then write it into every desktop containment.
+path_json=$(python3 -c 'import json,sys; print(json.dumps(sys.argv[1]))' "$video")
+
+qdbus6 org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript \
+"var all=desktops();
+for(var i=0;i<all.length;i++){
+  var d=all[i];
+  d.wallpaperPlugin='$PLUGIN_ID';
+  d.currentConfigGroup=Array('Wallpaper','$PLUGIN_ID','General');
+  d.writeConfig('VideoSource',$path_json);
+  d.writeConfig('Running','true');
+  d.writeConfig('Muted','true');
+  d.reloadConfig();
+}" >/dev/null
 
 echo "Live wallpaper set: $(basename "$video")"

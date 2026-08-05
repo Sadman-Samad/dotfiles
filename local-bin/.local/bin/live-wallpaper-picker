@@ -110,20 +110,34 @@ def generate_thumbnail(video_path: Path):
     except Exception:
         return None
 
+def _plasma_eval(js: str) -> str:
+    """Run a JavaScript snippet against the running PlasmaShell via dbus."""
+    return subprocess.check_output(
+        ["qdbus6", "org.kde.plasmashell", "/PlasmaShell",
+         "org.kde.PlasmaShell.evaluateScript", js],
+        text=True, timeout=10).strip()
+
 def set_wallpaper(video_path: str):
-    for proc in ("mpvpaper", "swww-daemon"):
-        subprocess.Popen(["pkill", "-x", proc],
-                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    try:
-        monitors = json.loads(subprocess.check_output(["hyprctl", "monitors", "-j"]))
-        for m in monitors:
-            subprocess.Popen(
-                ["mpvpaper", "-f", "-o",
-                 "--no-config --loop --mute --hwdec=auto-safe --terminal=no",
-                 m["name"], str(video_path)],
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except Exception:
-        pass
+    """Apply a video wallpaper on KDE Plasma via the dev.sadman.videowallpaper plugin.
+
+    Plasma-native: uses QtMultimedia inside plasmashell (no mpvpaper/hyprctl),
+    so it works on KWin/Wayland. The video path is written into every desktop
+    containment's plugin config and the plugin is (re)loaded.
+    """
+    video = str(Path(video_path).expanduser().resolve())
+    js = (
+        "var all = desktops();"
+        "for (var i = 0; i < all.length; i++) {"
+        "  var d = all[i];"
+        "  d.wallpaperPlugin = 'dev.sadman.videowallpaper';"
+        "  d.currentConfigGroup = Array('Wallpaper', 'dev.sadman.videowallpaper', 'General');"
+        f"  d.writeConfig('VideoSource', {json.dumps(video)});"
+        "  d.writeConfig('Running', 'true');"
+        "  d.writeConfig('Muted', 'true');"
+        "  d.reloadConfig();"
+        "}"
+    )
+    _plasma_eval(js)
 
 def fetch_page(category: str, page: int):
     """Fetch one page of wallpapers from a MoeWalls category. Returns list of dicts."""
