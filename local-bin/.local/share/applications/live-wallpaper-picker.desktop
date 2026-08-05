@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Live Wallpaper Picker
+Comment=Browse and pick live video wallpapers
+Exec=live-wallpaper-picker
+Icon=preferences-desktop-wallpaper
+Terminal=false
+Categories=Utility;Settings;
+Keywords=wallpaper;background;live;video;
+StartupWMClass=dev.sadman.LiveWallpaperPicker
