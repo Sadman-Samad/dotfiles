@@ -2,7 +2,7 @@
 Type=Application
 Name=Live Wallpaper Picker
 Comment=Browse and pick live video wallpapers
-Exec=live-wallpaper-picker
+Exec=/home/sadman/.local/bin/live-wallpaper-picker
 Icon=preferences-desktop-wallpaper
 Terminal=false
 Categories=Utility;Settings;
