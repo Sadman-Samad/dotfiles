@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # live-wallpaper — set a video wallpaper on KDE Plasma (Wayland).
 #
-# Plasma-native: drives the dev.sadman.videowallpaper QML plugin via the
-# PlasmaShell dbus interface (QtMultimedia inside plasmashell). No mpvpaper,
-# hyprctl, or wlroots dependency — works on KWin.
+# Drives the installed smart-video-wallpaper plugin
+# (luisbocanegra.smart.video.wallpaper.reborn) via the PlasmaShell dbus
+# interface. The plugin reads 'VideoUrls' as a JSON array of video objects
+# whose 'filename' is a file:// URL. No mpvpaper / hyprctl / wlroots deps.
 #
 # Usage:
 #   live-wallpaper              # random video from WALLPAPER_DIR
@@ -11,7 +12,7 @@
 set -euo pipefail
 
 WALLPAPER_DIR="${WALLPAPER_DIR:-$HOME/.local/share/live-wallpapers}"
-PLUGIN_ID="dev.sadman.videowallpaper"
+PLUGIN_ID="luisbocanegra.smart.video.wallpaper.reborn"
 
 # Pick the target video.
 if [[ -n "${1:-}" ]]; then
@@ -25,23 +26,31 @@ fi
 
 [[ -z "${video:-}" ]] && { echo "No video files found in $WALLPAPER_DIR" >&2; exit 1; }
 
-# Resolve to an absolute path the QML MediaPlayer can load.
+# Resolve to an absolute file:// URL the smart plugin expects.
 video=$(readlink -f -- "$video")
 
-# Build the PlasmaShell script. JSON-encode the path to stay safe against
-# quotes/backslashes, then write it into every desktop containment.
-path_json=$(python3 -c 'import json,sys; print(json.dumps(sys.argv[1]))' "$video")
-
+# Build the VideoUrls JSON array + the PlasmaShell script in Python (robust
+# JSON quoting without shell-escaping gymnastics).
 qdbus6 org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript \
-"var all=desktops();
-for(var i=0;i<all.length;i++){
-  var d=all[i];
-  d.wallpaperPlugin='$PLUGIN_ID';
-  d.currentConfigGroup=Array('Wallpaper','$PLUGIN_ID','General');
-  d.writeConfig('VideoSource',$path_json);
-  d.writeConfig('Running','true');
-  d.writeConfig('Muted','true');
-  d.reloadConfig();
-}" >/dev/null
+"$(python3 -c '
+import json
+plugin = "'"$PLUGIN_ID"'"
+video  = "'"$video"'"
+url    = "file://" + video
+vj = json.dumps([{"filename": url, "enabled": True, "loop": True,
+                  "playbackRate": 0, "alternativePlaybackRate": 0,
+                  "duration": 0, "customDuration": 0}])
+js = (
+    "var all=desktops();"
+    "for(var i=0;i<all.length;i++){"
+    "var d=all[i];"
+    "d.wallpaperPlugin=" + json.dumps(plugin) + ";"
+    "d.currentConfigGroup=Array(\"Wallpaper\"," + json.dumps(plugin) + ",\"General\");"
+    "d.writeConfig(\"VideoUrls\"," + json.dumps(vj) + ");"
+    "d.reloadConfig();"
+    "}"
+)
+print(js)
+')"
 
 echo "Live wallpaper set: $(basename "$video")"

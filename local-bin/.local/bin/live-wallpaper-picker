@@ -118,22 +118,29 @@ def _plasma_eval(js: str) -> str:
         text=True, timeout=10).strip()
 
 def set_wallpaper(video_path: str):
-    """Apply a video wallpaper on KDE Plasma via the dev.sadman.videowallpaper plugin.
+    """Apply a video wallpaper on KDE Plasma.
 
-    Plasma-native: uses QtMultimedia inside plasmashell (no mpvpaper/hyprctl),
-    so it works on KWin/Wayland. The video path is written into every desktop
-    containment's plugin config and the plugin is (re)loaded.
+    Drives the installed smart-video-wallpaper plugin
+    (luisbocanegra.smart.video.wallpaper.reborn) via the PlasmaShell dbus
+    interface. The plugin reads 'VideoUrls' as a JSON array of video objects
+    whose 'filename' is a file:// URL. This renders correctly on Plasma 6 /
+    KWin / Wayland (NVIDIA), unlike a from-scratch QtMultimedia wallpaper.
     """
-    video = str(Path(video_path).expanduser().resolve())
+    url = "file://" + str(Path(video_path).expanduser().resolve())
+    video_json = json.dumps([{
+        "filename": url, "enabled": True, "loop": True,
+        "playbackRate": 0, "alternativePlaybackRate": 0,
+        "duration": 0, "customDuration": 0,
+    }])
+    plugin = "luisbocanegra.smart.video.wallpaper.reborn"
     js = (
         "var all = desktops();"
         "for (var i = 0; i < all.length; i++) {"
         "  var d = all[i];"
-        "  d.wallpaperPlugin = 'dev.sadman.videowallpaper';"
-        "  d.currentConfigGroup = Array('Wallpaper', 'dev.sadman.videowallpaper', 'General');"
-        f"  d.writeConfig('VideoSource', {json.dumps(video)});"
-        "  d.writeConfig('Running', 'true');"
-        "  d.writeConfig('Muted', 'true');"
+ f"  d.wallpaperPlugin = {json.dumps(plugin)};"
+        "  d.currentConfigGroup = Array('Wallpaper', "
+ f"    {json.dumps(plugin)}, 'General');"
+ f"  d.writeConfig('VideoUrls', {json.dumps(video_json)});"
         "  d.reloadConfig();"
         "}"
     )
