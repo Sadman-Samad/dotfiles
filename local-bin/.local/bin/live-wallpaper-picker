@@ -189,24 +189,47 @@ def parse_category_html(html: str, category: str):
                         "gender": guess_gender(title)})
     return results
 
-def download_online_wallpaper(wallpaper: dict):
+def download_online_wallpaper(wallpaper: dict, progress_cb=None):
+    """Download via go.moewalls.com/download.php?video=<token>."""
     try:
         req = urllib.request.Request(wallpaper["page_url"],
                 headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64)"})
         html = urllib.request.urlopen(req, timeout=15).read().decode("utf-8", "replace")
     except Exception:
         return None
-    mp4s  = re.findall(r'https?://[^"\'>\s]+/wp-content/uploads/[^"\'>\s]+\.mp4', html)
-    webms = re.findall(r'https?://[^"\'>\s]+/wp-content/uploads/[^"\'>\s]+\.webm', html)
-    url   = next(iter(mp4s + webms), None)
-    if not url:
+
+    # The download button: <a id="moe-download" data-id="..." data-url="<token>">
+    m = re.search(r'id="moe-download"[^>]*data-url="([^"]+)"', html)
+    if not m:
         return None
+    token = m.group(1)
+    dl_url = f"https://go.moewalls.com/download.php?video={token}"
+
     out = WALLPAPER_DIR / f"{wallpaper['slug']}.mp4"
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-        out.write_bytes(urllib.request.urlopen(req, timeout=120).read())
+        req = urllib.request.Request(dl_url, headers={
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64)",
+            "Referer": "https://moewalls.com/"})
+        resp = urllib.request.urlopen(req, timeout=120)
+        total = int(resp.headers.get("Content-Length", 0))
+
+        # Stream to disk with optional progress callback
+        tmp = out.with_suffix(".mp4.part")
+        downloaded = 0
+        with open(tmp, "wb") as f:
+            while True:
+                chunk = resp.read(65536)
+                if not chunk:
+                    break
+                f.write(chunk)
+                downloaded += len(chunk)
+                if progress_cb and total:
+                    progress_cb(downloaded, total)
+        tmp.rename(out)
         return out
     except Exception:
+        if out.with_suffix(".mp4.part").exists():
+            out.with_suffix(".mp4.part").unlink(missing_ok=True)
         return None
 
 
@@ -308,12 +331,15 @@ class OnlineCard(Gtk.Box):
 
     def _on_dl(self, _):
         if self.done: return
-        self.btn.set_label("⏳ Downloading…")
+        self.btn.set_label("⏳ 0%")
         self.btn.set_sensitive(False)
         threading.Thread(target=self._dl_thread, daemon=True).start()
 
     def _dl_thread(self):
-        res = download_online_wallpaper(self.wp)
+        def progress(done, total):
+            pct = int(done * 100 / total) if total else 0
+            GLib.idle_add(self.btn.set_label, f"⏳ {pct}%")
+        res = download_online_wallpaper(self.wp, progress_cb=progress)
         GLib.idle_add(self._dl_done, res)
 
     def _dl_done(self, res):
