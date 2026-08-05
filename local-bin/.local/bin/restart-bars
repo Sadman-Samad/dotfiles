@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# restart-bars.sh — restart waybar + nwg-dock cleanly.
+# Use after a crash, hyprctl reload, or anytime bars disappear.
+set -uo pipefail
+
+# Kill old instances and orphaned script processes
+pkill -9 -x waybar 2>/dev/null || true
+pkill -9 -x nwg-dock-hyprland 2>/dev/null || true
+pkill -9 -f "waybar/scripts/active-window-title" 2>/dev/null || true
+pkill -9 -f "socat.*socket2" 2>/dev/null || true
+
+sleep 0.5
+
+# Relaunch
+waybar >/tmp/waybar.log 2>&1 &
+nwg-dock-hyprland -d -i 56 >/tmp/nwg-dock.log 2>&1 &
+
+echo "Bars restarted."

@@ -132,7 +132,7 @@
     "format-alt": "󰈀  {ifname} {ipaddr}",
     "format-alt-click": "click",
     "format-disconnected": "󰅞  disconnected",
-    "tooltip-format": "{ifname}  ({linkspeed})\n{ipaddr}/{cidr}\n↓ {bandwidthDownBits}  ↑ {bandwidthUpBits}"
+    "tooltip-format": "{ifname}\n{ipaddr}\n↓ {bandwidthDownBits}  ↑ {bandwidthUpBits}"
   },
 
   "custom/ping": {

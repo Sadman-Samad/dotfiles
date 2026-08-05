@@ -114,17 +114,20 @@ get_active_class() {
 # Find the socket2 path
 SOCK2="${XDG_RUNTIME_DIR:-/run/user/1000}/hypr/${HYPRLAND_INSTANCE_SIGNATURE}/.socket2.sock"
 
+# Die when waybar closes our stdout (SIGPIPE) so we don't orphan socat loops.
+trap 'exit 0' PIPE
+
 # Emit current window immediately
 emit "$(get_active_class)"
 
-# Follow events
+# Follow events via the Hyprland event socket.
 if [ -S "$SOCK2" ]; then
-    exec socat -U - "UNIX-CONNECT:${SOCK2}" 2>/dev/null | \
+    socat -U - "UNIX-CONNECT:${SOCK2}" 2>/dev/null | \
         while IFS= read -r _; do
             emit "$(get_active_class)"
         done
 else
-    # Fallback: poll every 1s if socket not found
+    # Fallback: poll every 1s if socket not found.
     while true; do
         emit "$(get_active_class)"
         sleep 1
