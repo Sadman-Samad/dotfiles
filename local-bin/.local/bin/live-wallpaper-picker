@@ -165,28 +165,28 @@ def fetch_page(category: str, page: int):
             return []
 
 def parse_category_html(html: str, category: str):
-    """Parse a MoeWalls category page for wallpaper entries."""
-    # Links are /<category>/<slug>/ but could also be /anime/<slug>/ even in other categories
-    raw_links = re.findall(r'href="(https://moewalls\.com/(?:[a-z-]+)/([^/]+)/?)"', html)
-    raw_thumbs = {}
-    for turl in re.findall(r'src="(https://[^"]+-thumb[^"]*\.jpg)"', html):
-        fname = turl.rsplit("/", 1)[-1]
-        slug  = re.sub(r'-thumb-\d+x\d+\.jpg$', "", fname)
-        raw_thumbs[slug] = turl
+    """Parse a MoeWalls category page for wallpaper entries.
 
+    Wallpapers live inside <article> blocks. Parsing the full page HTML
+    instead also matches resolution links, sidebar entries, and ads —
+    which produce blank cards with no thumbnails.
+    """
+    articles = re.findall(r'<article[^>]*>(.*?)</article>', html, re.DOTALL)
     seen, results = set(), []
-    for page_url, slug in raw_links:
-        if slug in seen or slug in ("category", "tag", "about", "contact",
-            "privacy-policy", "dmca", "terms-of-use", "feed", "wp-json",
-            "frequently-asked-questions", "terms-of-service", "disclaimer",
-            "set-live-wallpapers-for-your-desktop-using-free-software"):
+    for art in articles:
+        link_m = re.search(
+            r'href="(https://moewalls\.com/(?:[a-z-]+)/([^/]+)/?)"', art)
+        thumb_m = re.search(r'src="(https://[^"]+-thumb[^"]*\.jpg)"', art)
+        if not link_m:
+            continue
+        page_url, slug = link_m.group(1), link_m.group(2)
+        if slug in seen:
             continue
         seen.add(slug)
         title = slug.replace("-", " ").title().replace(" Live Wallpaper", "")
-        thumb = raw_thumbs.get(slug.replace("-live-wallpaper", ""), "")
         results.append({"title": title, "slug": slug, "page_url": page_url,
-                        "thumb_url": thumb, "category": category,
-                        "gender": guess_gender(title)})
+                        "thumb_url": thumb_m.group(1) if thumb_m else "",
+                        "category": category, "gender": guess_gender(title)})
     return results
 
 def download_online_wallpaper(wallpaper: dict, progress_cb=None):
