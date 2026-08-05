@@ -55,7 +55,7 @@
   "custom/window-title": {
     "exec": "~/.config/waybar/scripts/active-window-title.sh",
     "return-type": "json",
-    "format": "  {}",
+    "format": "{}",
     "tooltip": true
   },
 
