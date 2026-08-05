@@ -29,7 +29,6 @@ Or apply individual packages with [GNU Stow](https://www.gnu.org/software/stow/)
 | `zsh` `bash` `p10k` | shells + prompt |
 | `tmux` `nvim` | editor/multiplexer |
 | `waybar` | status bar (12h clock, weather, pacman-updates modules) |
-| `hyprland` | Hyprland compositor + hypridle |
 | `rofi` `fcitx5` | launcher + input method |
 | `kde` | KDE Plasma configs (shortcuts, kwin, window rules, panel) |
 | `git` | git identity |

@@ -56,11 +56,6 @@ stow -D -t ~ <package-name> # Remove symlinks
 - FZF, Zoxide, and modern CLI tool integrations
 - Custom aliases and functions
 
-**hyprland/**: Wayland compositor configuration
-- Modular setup: `hyprland.conf` includes `defaults.conf` and `custom.conf`
-- Custom keybindings for window management and application launching
-- Rofi integration for application launching
-
 **alacritty/**: Terminal emulator configuration
 - Catppuccin Mocha theme
 - JetbrainsMono Nerd Font
@@ -115,7 +110,6 @@ bin/apply-shortcuts-preset krohnkite-default  # Apply preset shortcuts
 - Language servers and formatters configured per filetype
 
 **Modular Configuration:**
-- Hyprland uses include statements for organization
 - Zsh configuration sources multiple files for different concerns
 - VS Code settings organized by feature categories
 - KDE configurations separated by component (kwin, plasma, shortcuts)
@@ -129,8 +123,7 @@ bin/apply-shortcuts-preset krohnkite-default  # Apply preset shortcuts
 
 **Languages:** TypeScript, Go, Dart/Flutter, Python, Lua, Shell
 **Tools:** Git, Docker, Node.js, npm/yarn/pnpm, Flutter SDK
-**Terminal:** Modern CLI tools (fd, rg, bat, exa, zoxide, fzf)
-**Desktop:** KDE Plasma with Krohnkite tiling, Hyprland (Wayland compositor)
+**Desktop:** KDE Plasma with Krohnkite tiling
 
 ### KDE Plasma Setup Instructions
 

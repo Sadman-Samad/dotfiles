@@ -110,8 +110,6 @@ install_packages() {
         "waybar" "pacman-contrib" "ttf-jetbrains-mono-nerd"
         # launcher + input method
         "rofi" "fcitx5" "fcitx5-configtool"
-        # Hyprland ecosystem (referenced by hyprland/.config/*)
-        "hyprland" "hypridle" "swww" "gammastep" "wlogout"
         "wl-clipboard" "cliphist" "polkit-gnome" "easyeffects"
         "gnome-keyring" "geoclue" "kdeconnect" "bibata-cursor-theme"
     )
@@ -177,7 +175,7 @@ apply_dotfiles() {
             ".zshrc" ".bashrc" ".tmux.conf" ".gitconfig" ".p10k.zsh"
             ".config/nvim" ".config/alacritty" ".config/ghostty"
             ".config/kitty" ".config/wezterm" ".config/waybar"
-            ".config/hypr" ".config/rofi" ".config/fcitx5" ".config/Code"
+            ".config/rofi" ".config/fcitx5" ".config/Code"
         )
         
         for config in "${configs[@]}"; do
