@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """
 live-wallpaper-picker — browse and pick live wallpapers.
+
+Local tab: grid of thumbnails for videos in ~/.local/share/live-wallpapers/.
+Online tab: trending wallpapers from MoeWalls with category filter.
 """
 import gi
 gi.require_version("Gtk", "4.0")
@@ -17,6 +20,24 @@ for d in (WALLPAPER_DIR, THUMB_DIR, ONLINE_CACHE):
     d.mkdir(parents=True, exist_ok=True)
 
 CARD_W, CARD_H = 200, 120
+PAGE_SIZE = 2  # pages to fetch per category
+
+# MoeWalls categories: slug → display name
+CATEGORIES = {
+    "all":      "🔥 All",
+    "anime":    "✨ Anime",
+    "games":    "🎮 Games",
+    "movies":   "🎬 Movies",
+    "abstract": "🎨 Abstract",
+    "fantasy":  "🐉 Fantasy",
+    "sci-fi":   "🚀 Sci-Fi",
+    "landscape":"🏞️ Landscape",
+    "animal":   "🐾 Animals",
+    "vehicle":  "🚗 Vehicles",
+    "pixel-art":"👾 Pixel Art",
+    "lifestyle":"☕ Lifestyle",
+    "others":   "📦 Others",
+}
 
 CSS = b"""
 #wallpaper-card {
@@ -27,8 +48,55 @@ CSS = b"""
 #wallpaper-card:hover {
     background-color: rgba(49, 50, 68, 0.95);
 }
+.gender-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 8px;
+}
+.gender-female { background: rgba(245,122,194,0.2); color: #f5a3d1; }
+.gender-male   { background: rgba(137,180,250,0.2); color: #89b4fa; }
+.gender-unknown{ background: rgba(186,194,222,0.15); color: #bac2de; }
 """
 
+# Keywords to guess gender from wallpaper title (best-effort)
+FEMALE_KW = ["girl", "woman", "female", "waifu", "maid", "bikini", "swimsuit",
+    "goth", "witch", "princess", "queen", "miku", "rem ", "emilia", "raiden",
+    "ganyu", "nilou", "nahida", "furina", "hu tao", "yae", "jinhsi", "prana",
+    "hina", "chiaki", "satsuki", "yuzuha", "fangyi", "remielle", "yao guang",
+    "schoolgirl", "school girl", "sorasaki", "texas", "sparkle", "firefly",
+    "silver wolf", "seele", "bronya", "kafka", "himeko", "asta", "noelle",
+    "raiden shogun", "yae miko", "eula", "jean", "lisa", "amber", "ningguang",
+    "beidou", "xiangling", "fischl", "sucrose", "mona", "keqing", "shenhe",
+    "yelan", "lynette", "wriothesley", "navia", "cloud retainer", "sigewinne",
+    "chiori", "arlecchino", "clorinde", "emilie", "xilonen", "mualani",
+    "kachina", "citlali", "iansan", "gaming", "chasca", "mavuika",
+    "fyori", "shinobu", "raiden", "yumeko", "sakura", "asuka", "rei",
+    "misato", "ritsuko", "shinji", "female"]
+MALE_KW = ["boy", "man", "male", "gojo", "sukuna", "yuta", "yuji", "naruto",
+    "sasuke", "goku", "vegeta", "luffy", "zoro", "ichigo", "tanjiro", "inosuke",
+    "zenitsu", "denji", "aki", "power", "makima" if False else "",  # makima is female
+    "guts", "griffith", "gohan", "piccolo", "deku", "bakugo", "todoroki",
+    "all might", "levi", "eren", "armin", "reiner", "zeke", "spider-man",
+    "batman", "superman", "iron man", "captain", "thor", "loki", "hulk",
+    "witcher", "geralt", "kratos", "atreus", "duke nukem", "doom", "master chief"]
+
+def guess_gender(title: str) -> str:
+    t = title.lower()
+    if any(k in t for k in FEMALE_KW if k):
+        return "female"
+    if any(k in t for k in MALE_KW if k):
+        return "male"
+    return "unknown"
+
+GENDER_FILTERS = {
+    "all":     "All",
+    "female":  "♀ Female",
+    "male":    "♂ Male",
+    "unknown": "❓ Other",
+}
+
+
+# ─── Helpers ───────────────────────────────────────────────────────────────
 def generate_thumbnail(video_path: Path):
     thumb = THUMB_DIR / (video_path.stem + ".png")
     if thumb.exists():
@@ -57,21 +125,68 @@ def set_wallpaper(video_path: str):
     except Exception:
         pass
 
-def parse_online_wallpapers(html: str):
-    raw_links = re.findall(r'href="(https://moewalls\.com/anime/([^/]+)/?)"', html)
+def fetch_page(category: str, page: int):
+    """Fetch one page of wallpapers from a MoeWalls category. Returns list of dicts."""
+    if category == "all":
+        # Fetch from multiple categories in parallel
+        results = []
+        threads = []
+        lock = threading.Lock()
+
+        def _fetch_cat(cat):
+            url = f"https://moewalls.com/category/{cat}/page/{page}/" if page > 1 else f"https://moewalls.com/category/{cat}/"
+            try:
+                req = urllib.request.Request(url,
+                        headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64)"})
+                html = urllib.request.urlopen(req, timeout=15).read().decode("utf-8", "replace")
+                parsed = parse_category_html(html, cat)
+                with lock:
+                    results.extend(parsed)
+            except Exception:
+                pass
+
+        # Fetch top categories in parallel for "all"
+        for cat in ["anime", "games", "movies", "fantasy", "sci-fi", "landscape"]:
+            t = threading.Thread(target=_fetch_cat, args=(cat,), daemon=True)
+            threads.append(t)
+            t.start()
+        for t in threads:
+            t.join()
+        return results
+    else:
+        url = (f"https://moewalls.com/category/{category}/page/{page}/"
+               if page > 1 else f"https://moewalls.com/category/{category}/")
+        try:
+            req = urllib.request.Request(url,
+                    headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64)"})
+            html = urllib.request.urlopen(req, timeout=15).read().decode("utf-8", "replace")
+            return parse_category_html(html, category)
+        except Exception:
+            return []
+
+def parse_category_html(html: str, category: str):
+    """Parse a MoeWalls category page for wallpaper entries."""
+    # Links are /<category>/<slug>/ but could also be /anime/<slug>/ even in other categories
+    raw_links = re.findall(r'href="(https://moewalls\.com/(?:[a-z-]+)/([^/]+)/?)"', html)
     raw_thumbs = {}
     for turl in re.findall(r'src="(https://[^"]+-thumb[^"]*\.jpg)"', html):
         fname = turl.rsplit("/", 1)[-1]
         slug  = re.sub(r'-thumb-\d+x\d+\.jpg$', "", fname)
         raw_thumbs[slug] = turl
+
     seen, results = set(), []
     for page_url, slug in raw_links:
-        if slug in seen:
+        if slug in seen or slug in ("category", "tag", "about", "contact",
+            "privacy-policy", "dmca", "terms-of-use", "feed", "wp-json",
+            "frequently-asked-questions", "terms-of-service", "disclaimer",
+            "set-live-wallpapers-for-your-desktop-using-free-software"):
             continue
         seen.add(slug)
         title = slug.replace("-", " ").title().replace(" Live Wallpaper", "")
+        thumb = raw_thumbs.get(slug.replace("-live-wallpaper", ""), "")
         results.append({"title": title, "slug": slug, "page_url": page_url,
-                        "thumb_url": raw_thumbs.get(slug.replace("-live-wallpaper", ""), "")})
+                        "thumb_url": thumb, "category": category,
+                        "gender": guess_gender(title)})
     return results
 
 def download_online_wallpaper(wallpaper: dict):
@@ -108,7 +223,6 @@ class LocalCard(Gtk.Box):
         pic.set_content_fit(Gtk.ContentFit.FILL)
         self.append(pic)
         self._pic = pic
-
         threading.Thread(target=self._gen_thumb, args=(video_path,), daemon=True).start()
 
         name = video_path.stem.replace("-", " ").replace("_", " ").title()
@@ -150,17 +264,26 @@ class OnlineCard(Gtk.Box):
         pic.set_content_fit(Gtk.ContentFit.FILL)
         self.append(pic)
         self._pic = pic
-
         threading.Thread(target=self._load_thumb, daemon=True).start()
 
+        # Title + gender badge row
+        title_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
         title = wallpaper["title"]
-        if len(title) > 26: title = title[:23] + "…"
+        if len(title) > 20: title = title[:17] + "…"
         lbl = Gtk.Label(label=title)
-        lbl.set_max_width_chars(24)
+        lbl.set_max_width_chars(20)
         lbl.set_ellipsize(Pango.EllipsizeMode.END)
-        self.append(lbl)
+        lbl.set_hexpand(True)
+        title_box.append(lbl)
 
-        self.btn = Gtk.Button(label="Download & Apply")
+        gender = wallpaper.get("gender", "unknown")
+        if gender != "unknown":
+            badge = Gtk.Label(label="♀" if gender == "female" else "♂")
+            badge.set_css_classes([f"gender-badge", f"gender-{gender}"])
+            title_box.append(badge)
+        self.append(title_box)
+
+        self.btn = Gtk.Button(label="⬇ Download & Apply")
         self.btn.set_css_classes(["suggested-action"])
         self.btn.connect("clicked", self._on_dl)
         self.append(self.btn)
@@ -185,7 +308,7 @@ class OnlineCard(Gtk.Box):
 
     def _on_dl(self, _):
         if self.done: return
-        self.btn.set_label("Downloading…")
+        self.btn.set_label("⏳ Downloading…")
         self.btn.set_sensitive(False)
         threading.Thread(target=self._dl_thread, daemon=True).start()
 
@@ -196,11 +319,11 @@ class OnlineCard(Gtk.Box):
     def _dl_done(self, res):
         if res:
             self.done = True
-            self.btn.set_label("Applied ✓")
+            self.btn.set_label("✓ Applied")
             set_wallpaper(str(res))
             self.picker.toast(f"Downloaded: {res.stem}")
         else:
-            self.btn.set_label("Retry")
+            self.btn.set_label("↻ Retry")
             self.btn.set_sensitive(True)
             self.picker.toast("Download failed")
 
@@ -210,7 +333,11 @@ class PickerWindow(Adw.ApplicationWindow):
     def __init__(self, **kw):
         super().__init__(**kw)
         self.set_title("Live Wallpaper Picker")
-        self.set_default_size(960, 680)
+        self.set_default_size(1000, 700)
+
+        self._all_online = []   # all fetched wallpapers
+        self._cur_cat = "all"
+        self._cur_gender = "all"
 
         toast_ovl = Adw.ToastOverlay()
         self.set_content(toast_ovl)
@@ -219,16 +346,17 @@ class PickerWindow(Adw.ApplicationWindow):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         toast_ovl.set_child(box)
 
+        # ── Header ──
         hdr = Adw.HeaderBar()
         box.append(hdr)
 
         rbtn = Gtk.Button(icon_name="view-refresh-symbolic")
-        rbtn.connect("clicked", lambda *_: (self._fill_local(),
-                self.toast("Refreshed"),
-                threading.Thread(target=self._fetch_online, daemon=True).start()))
+        rbtn.set_tooltip_text("Refresh")
+        rbtn.connect("clicked", self._on_refresh)
         hdr.pack_start(rbtn)
 
         sbtn = Gtk.Button(icon_name="media-playlist-shuffle-symbolic")
+        sbtn.set_tooltip_text("Random local wallpaper")
         sbtn.connect("clicked", self._random)
         hdr.pack_start(sbtn)
 
@@ -239,7 +367,7 @@ class PickerWindow(Adw.ApplicationWindow):
         box.append(sw)
         box.append(self.stack)
 
-        # Local
+        # ── Local tab ──
         ls = Gtk.ScrolledWindow(vexpand=True)
         self.lf = Gtk.FlowBox(max_children_per_line=4, min_children_per_line=2,
                 homogeneous=True, selection_mode=Gtk.SelectionMode.NONE,
@@ -249,22 +377,62 @@ class PickerWindow(Adw.ApplicationWindow):
         pg = self.stack.add_titled(child=ls, name="local", title="Local")
         pg.set_icon_name("folder-pictures-symbolic")
 
-        # Online
+        # ── Online tab (with filter bar) ──
+        online_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        online_box.set_vexpand(True)
+
+        # Filter bar: Category dropdown + Gender dropdown + Load More
+        filter_bar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8,
+                             margin_start=12, margin_end=12, margin_top=8, margin_bottom=8)
+
+        # Category dropdown
+        cat_model = Gtk.StringList.new(list(CATEGORIES.values()))
+        self.cat_dropdown = Gtk.DropDown(model=cat_model)
+        self.cat_dropdown.set_tooltip_text("Category")
+        self.cat_dropdown.connect("notify::selected", self._on_cat_changed)
+        filter_bar.append(self.cat_dropdown)
+
+        # Gender dropdown
+        gender_model = Gtk.StringList.new(list(GENDER_FILTERS.values()))
+        self.gender_dropdown = Gtk.DropDown(model=gender_model)
+        self.gender_dropdown.set_tooltip_text("Gender filter")
+        self.gender_dropdown.connect("notify::selected", self._on_gender_changed)
+        filter_bar.append(self.gender_dropdown)
+
+        # Load more button
+        self.more_btn = Gtk.Button(label="Load More")
+        self.more_btn.set_css_classes(["suggested-action"])
+        self.more_btn.connect("clicked", self._on_load_more)
+        filter_bar.append(self.more_btn)
+
+        # Result count label
+        self.count_lbl = Gtk.Label(label="")
+        self.count_lbl.set_css_classes(["dim-label"])
+        self.count_lbl.set_hexpand(True)
+        self.count_lbl.set_halign(Gtk.Align.END)
+        filter_bar.append(self.count_lbl)
+
+        online_box.append(filter_bar)
+
         os = Gtk.ScrolledWindow(vexpand=True)
         self.of = Gtk.FlowBox(max_children_per_line=4, min_children_per_line=2,
                 homogeneous=True, selection_mode=Gtk.SelectionMode.NONE,
-                margin_start=12, margin_end=12, margin_top=12, margin_bottom=12,
+                margin_start=12, margin_end=12, margin_top=4, margin_bottom=12,
                 row_spacing=12, column_spacing=12)
         os.set_child(self.of)
-        pg = self.stack.add_titled(child=os, name="online", title="Online")
+        online_box.append(os)
+
+        pg = self.stack.add_titled(child=online_box, name="online", title="Online")
         pg.set_icon_name("network-server-symbolic")
 
         # Loading placeholder
-        self.of.append(Gtk.Label(label="Loading trending wallpapers…",
-                        margin_top=40, css_classes=["dim-label"]))
+        self._loading_lbl = Gtk.Label(label="Loading trending wallpapers…",
+                        margin_top=40, css_classes=["dim-label"])
+        self.of.append(self._loading_lbl)
 
+        self._page = 1
         self._fill_local()
-        threading.Thread(target=self._fetch_online, daemon=True).start()
+        threading.Thread(target=self._fetch_online, args=(1,), daemon=True).start()
 
     def _fill_local(self):
         c = self.lf.get_first_child()
@@ -280,32 +448,88 @@ class PickerWindow(Adw.ApplicationWindow):
         for v in vids:
             self.lf.append(LocalCard(v, self))
 
-    def _fetch_online(self):
-        wps = []
-        for page in range(1, 4):
-            url = (f"https://moewalls.com/category/anime/page/{page}/"
-                   if page > 1 else "https://moewalls.com/category/anime/")
-            try:
-                req = urllib.request.Request(url,
-                        headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64)"})
-                wps.extend(parse_online_wallpapers(
-                    urllib.request.urlopen(req, timeout=15).read().decode("utf-8", "replace")))
-            except Exception:
-                pass
-        GLib.idle_add(self._fill_online, wps)
+    def _fetch_online(self, page: int):
+        wps = fetch_page(self._cur_cat, page)
+        GLib.idle_add(self._on_fetched, wps, page)
 
-    def _fill_online(self, wps):
+    def _on_fetched(self, wps, page):
+        if page == 1:
+            # Clear existing + remove loading label
+            c = self.of.get_first_child()
+            while c:
+                nxt = c.get_next_sibling()
+                self.of.remove(c)
+                c = nxt
+            self._all_online = []
+
+        # Deduplicate
+        existing = {w["slug"] for w in self._all_online}
+        for w in wps:
+            if w["slug"] not in existing:
+                self._all_online.append(w)
+                existing.add(w["slug"])
+
+        self._apply_filters()
+
+        if not wps and page == 1:
+            self.of.append(Adw.StatusPage(title="Connection failed",
+                description="Could not fetch wallpapers. Check your internet."))
+            self.more_btn.set_sensitive(False)
+        elif not wps:
+            self.more_btn.set_sensitive(False)
+            self.more_btn.set_label("No more")
+        else:
+            self.more_btn.set_sensitive(True)
+            self.more_btn.set_label("Load More")
+
+    def _apply_filters(self):
+        """Re-filter the grid by current category + gender without refetching."""
         c = self.of.get_first_child()
         while c:
             nxt = c.get_next_sibling()
             self.of.remove(c)
             c = nxt
-        if not wps:
-            self.of.append(Adw.StatusPage(title="Connection failed",
-                description="Could not fetch wallpapers. Check your internet."))
-            return
-        for w in wps:
+
+        gender = self._cur_gender
+        filtered = [w for w in self._all_online
+                    if gender == "all" or w.get("gender") == gender]
+
+        for w in filtered:
             self.of.append(OnlineCard(w, self))
+
+        self.count_lbl.set_label(f"{len(filtered)} wallpapers")
+
+    def _on_cat_changed(self, dropdown, _param):
+        idx = dropdown.get_selected()
+        self._cur_cat = list(CATEGORIES.keys())[idx]
+        self._page = 1
+        # Clear and show loading
+        c = self.of.get_first_child()
+        while c:
+            nxt = c.get_next_sibling()
+            self.of.remove(c)
+            c = nxt
+        self.of.append(Gtk.Label(label=f"Loading {CATEGORIES[self._cur_cat]}…",
+                        margin_top=40, css_classes=["dim-label"]))
+        self.more_btn.set_sensitive(False)
+        threading.Thread(target=self._fetch_online, args=(1,), daemon=True).start()
+
+    def _on_gender_changed(self, dropdown, _param):
+        idx = dropdown.get_selected()
+        self._cur_gender = list(GENDER_FILTERS.keys())[idx]
+        self._apply_filters()
+
+    def _on_load_more(self, _):
+        self._page += 1
+        self.more_btn.set_label("Loading…")
+        self.more_btn.set_sensitive(False)
+        threading.Thread(target=self._fetch_online, args=(self._page,), daemon=True).start()
+
+    def _on_refresh(self, _):
+        self._fill_local()
+        self.toast("Refreshed")
+        self._page = 1
+        threading.Thread(target=self._fetch_online, args=(1,), daemon=True).start()
 
     def _random(self, _):
         vids = sorted(WALLPAPER_DIR.glob("*.mp4")) + sorted(WALLPAPER_DIR.glob("*.webm"))
