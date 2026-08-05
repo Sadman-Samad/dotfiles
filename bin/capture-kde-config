@@ -161,7 +161,7 @@ capture_kde_configs() {
         IFS=':' read -r source_path dest_path description <<< "$config_entry"
         
         if capture_config_file "$source_path" "$dest_path" "$description" "$dry_run"; then
-            ((captured_count++))
+            ((++captured_count))
         fi
     done
     
@@ -294,11 +294,11 @@ validate_captured_config() {
                 print_success "✓ $(basename "$file") - ${size} bytes"
             else
                 print_warning "⚠ $(basename "$file") seems too small - ${size} bytes"
-                ((issues++))
+                ((++issues))
             fi
         else
             print_error "✗ Missing: $(basename "$file")"
-            ((issues++))
+            ((++issues))
         fi
     done
     

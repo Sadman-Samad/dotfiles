@@ -1,0 +1,155 @@
+#!/usr/bin/env bash
+# Karigor launcher — a brandable distribution layer over the vendored engine.
+# Isolates config to ~/.karigor, handles login/auth, seeds the managed provider,
+# sets the default model, then hands off to the engine.
+#
+#   karigor login          authenticate with your Karigor token (once)
+#   karigor whoami         show who you're logged in as
+#   karigor logout         remove stored credentials
+#   karigor                start coding (requires login)
+#   karigor --byok         bring your own provider key instead (then /login)
+set -euo pipefail
+
+# --- Identity: isolate config from any other install -------------------------
+AGENT_DIR="${KARIGOR_AGENT_DIR:-$HOME/.karigor/agent}"
+export PI_CODING_AGENT_DIR="$AGENT_DIR"
+# Resolve symlinks (the installer symlinks ~/.local/bin/karigor → the app dir),
+# so KARIGOR_HOME is the real install root, not the symlink's directory.
+KARIGOR_SELF="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")"
+KARIGOR_HOME="$(cd "$(dirname "$KARIGOR_SELF")/.." && pwd)"
+# Engine binary resolution, in order:
+#   1. libexec/karigor-engine   — release-bundle layout (GitHub release tarball)
+#   2. upstream-omp/.../dist/karigor — in-repo build (scripts/setup.sh)
+#   3. bun on the TS source     — dev fallback if nothing is compiled
+# The compiled binary has the rebrand + disabled update-check baked in.
+ENGINE_BIN_RELEASE="$KARIGOR_HOME/libexec/karigor-engine"
+ENGINE_BIN_REPO="$KARIGOR_HOME/upstream-omp/packages/coding-agent/dist/karigor"
+ENGINE_SRC="$KARIGOR_HOME/upstream-omp/packages/coding-agent/src/cli.ts"
+run_engine() {
+  for b in "$ENGINE_BIN_RELEASE" "$ENGINE_BIN_REPO"; do
+    [[ -x "$b" ]] && exec "$b" "$@"
+  done
+  exec bun "$ENGINE_SRC" "$@"
+}
+ENV_FILE="$AGENT_DIR/.env"
+DEFAULT_GATEWAY="https://gateway.faisal.click/v1"   # interim host; switch to gateway.karigor.app once its DNS points at the VPS
+mkdir -p "$AGENT_DIR"
+
+# Resolve the gateway URL: explicit env → stored → default.
+gateway_url() {
+  if [[ -n "${KARIGOR_GATEWAY_URL:-}" ]]; then echo "$KARIGOR_GATEWAY_URL"; return; fi
+  if [[ -f "$ENV_FILE" ]]; then
+    local u; u=$(grep -E '^KARIGOR_GATEWAY_URL=' "$ENV_FILE" | tail -1 | cut -d= -f2-)
+    [[ -n "$u" ]] && { echo "$u"; return; }
+  fi
+  echo "$DEFAULT_GATEWAY"
+}
+stored_token() { [[ -f "$ENV_FILE" ]] && grep -E '^KARIGOR_TOKEN=' "$ENV_FILE" | tail -1 | cut -d= -f2-; }
+
+seed_models() {
+  local url="$1"
+  sed "s#baseUrl:.*#baseUrl: ${url}#" "$KARIGOR_HOME/client/models.yml" > "$AGENT_DIR/models.yml"
+}
+
+# Taste engine: (a) make the /taste command available user-wide, (b) sync the
+# human-edited TASTE.md in the project into .karigor/RULES.md so Karigor applies
+# your taste as always-on sticky rules every turn.
+seed_taste_command() {
+  mkdir -p "$AGENT_DIR/commands"
+  [[ -f "$AGENT_DIR/commands/taste.md" ]] || cp "$KARIGOR_HOME/client/commands/taste.md" "$AGENT_DIR/commands/taste.md"
+}
+sync_taste() {
+  if [[ -f "$PWD/TASTE.md" ]]; then
+    mkdir -p "$PWD/.karigor"
+    { echo "<!-- generated from TASTE.md by Karigor — edit TASTE.md, not this file -->"; cat "$PWD/TASTE.md"; } > "$PWD/.karigor/RULES.md"
+  fi
+}
+
+# Plugin studio: make /plugin-new available so the agent can scaffold plugins.
+seed_plugin_studio_command() {
+  mkdir -p "$AGENT_DIR/commands"
+  [[ -f "$AGENT_DIR/commands/plugin-new.md" ]] || cp "$KARIGOR_HOME/client/commands/plugin-new.md" "$AGENT_DIR/commands/plugin-new.md"
+}
+
+# Telemetry: make /telemetry available for opt-in/opt-out usage metrics.
+seed_telemetry_command() {
+  mkdir -p "$AGENT_DIR/commands"
+  [[ -f "$AGENT_DIR/commands/telemetry.md" ]] || cp "$KARIGOR_HOME/client/commands/telemetry.md" "$AGENT_DIR/commands/telemetry.md"
+}
+
+# Usage: make /usage available for plan/quota status and upgrade information.
+seed_usage_command() {
+  mkdir -p "$AGENT_DIR/commands"
+  [[ -f "$AGENT_DIR/commands/usage.md" ]] || cp "$KARIGOR_HOME/client/commands/usage.md" "$AGENT_DIR/commands/usage.md"
+}
+
+seed_taste_command
+seed_plugin_studio_command
+seed_telemetry_command
+seed_usage_command
+
+# --- Subcommands: login / logout / whoami ------------------------------------
+case "${1:-}" in
+  login)
+    URL="$(gateway_url)"
+    printf 'Paste your Karigor token: '
+    read -rs TOKEN; echo
+    [[ -z "$TOKEN" ]] && { echo "No token entered."; exit 1; }
+    # Validate against the gateway (a valid token lists models).
+    code=$(curl -s -o /dev/null -w '%{http_code}' -m 20 "$URL/models" -H "Authorization: Bearer $TOKEN")
+    if [[ "$code" != "200" ]]; then
+      echo "✗ Login failed (gateway returned HTTP $code). Check the token or contact support."
+      exit 1
+    fi
+    # Persist token + gateway URL, and (re)seed the provider config.
+    umask 077
+    { echo "KARIGOR_TOKEN=$TOKEN"; echo "KARIGOR_GATEWAY_URL=$URL"; } > "$ENV_FILE"
+    chmod 600 "$ENV_FILE"
+    seed_models "$URL"
+    echo "✓ Logged in. You're ready — just run: karigor"
+    exit 0 ;;
+  logout)
+    rm -f "$ENV_FILE"
+    echo "✓ Logged out (stored credentials removed)."
+    exit 0 ;;
+  whoami)
+    TOKEN="$(stored_token)"; URL="$(gateway_url)"
+    [[ -z "$TOKEN" ]] && { echo "Not logged in. Run: karigor login"; exit 1; }
+    code=$(curl -s -o /dev/null -w '%{http_code}' -m 20 "$URL/models" -H "Authorization: Bearer $TOKEN")
+    if [[ "$code" == "200" ]]; then echo "✓ Logged in to $URL (token ${TOKEN:0:10}…, valid)";
+    else echo "⚠ Stored token present but gateway returned HTTP $code."; fi
+    exit 0 ;;
+esac
+
+# --- BYOK mode: skip managed provider, use the user's own logins -------------
+if [[ "${1:-}" == "--byok" ]]; then
+  shift
+  export KARIGOR_MODE="byok"
+  export PI_DEFAULT_MODEL="${PI_DEFAULT_MODEL:-}"
+  sync_taste
+  run_engine "$@"
+fi
+
+# --- Authentication for all: require a token in managed mode -----------------
+if [[ -z "${KARIGOR_TOKEN:-}" && -z "$(stored_token)" ]]; then
+  echo "You're not logged in. Run:  karigor login"
+  echo "(or use your own provider key with:  karigor --byok)"
+  exit 1
+fi
+
+# Seed the managed provider config on first run.
+[[ -f "$AGENT_DIR/models.yml" ]] || seed_models "$(gateway_url)"
+
+# Pick the default model from what this token is entitled to: paid tokens get
+# karigor-pro (GLM), free tokens fall back to karigor-free (OpenCode).
+if [[ -z "${PI_DEFAULT_MODEL:-}" ]]; then
+  TOKEN="${KARIGOR_TOKEN:-$(stored_token)}"
+  MODELS=$(curl -s -m 8 "$(gateway_url)/models" -H "Authorization: Bearer $TOKEN" 2>/dev/null || true)
+  if echo "$MODELS" | grep -q '"karigor-pro"'; then
+    export PI_DEFAULT_MODEL="karigor/karigor-pro"
+  else
+    export PI_DEFAULT_MODEL="karigor/karigor-free"
+  fi
+fi
+sync_taste
+run_engine "$@"

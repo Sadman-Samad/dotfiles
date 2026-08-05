@@ -1,0 +1,4 @@
+#!/bin/sh
+# Chromium — Work profile, launched as its own process with a unique WM class
+# so KWin can pin it to Desktop 2.
+exec chromium --user-data-dir="$HOME/.config/chromium" --profile-directory=Default --class=chromium-work --name=chromium-work "$@"

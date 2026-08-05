@@ -1,0 +1,4 @@
+#!/bin/sh
+# Chromium — lian profile, separate user-data-dir so it runs as its own process
+# with a unique WM class. KWin pins it to Desktop 4.
+exec chromium --user-data-dir="$HOME/.config/chromium-lian" --profile-directory=Default --class=chromium-lian --name=chromium-lian "$@"

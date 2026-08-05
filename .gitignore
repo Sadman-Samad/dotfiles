@@ -14,6 +14,14 @@ Thumbs.db
 .config/user-dirs.dirs
 .config/user-dirs.locale
 
+# Pip-installed binaries & python cache (auto-generated, not dotfiles)
+.local/bin/fonttools
+.local/bin/pyftmerge
+.local/bin/pyftsubset
+.local/bin/ttx
+__pycache__/
+*.pyc
+
 # Secrets — never commit
 .env
 .env.*

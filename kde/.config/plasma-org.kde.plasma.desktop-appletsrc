@@ -15,24 +15,30 @@ location=0
 plugin=org.kde.plasma.folder
 wallpaperplugin=luisbocanegra.smart.video.wallpaper.reborn
 
+[Containments][1][General]
+changedPositions={"desktop:/steam.desktop":["1920x1080","3","5"]}
+lastResolution=1920x1080
+positions={"1920x1080":["1","17","desktop:/steam.desktop","3","5"]}
+sortMode=-1
+
 [Containments][1][Wallpaper]
 Image=file:///home/sadman/.local/share/anime-wallpapers/wallhaven-jey5qp.jpg
 VideoBackend=QtMultimedia
 
 [Containments][1][Wallpaper][General]
-File=file:///home/sadman/.local/share/live-wallpapers/gojo-vs-sukuna-desktophut.mp4
+File=file:///home/sadman/.local/share/live-wallpapers/prana-system-error-h264.mp4
 Loop=true
 Mute=true
 MuteMode=1
 Source=single_file
 Tags=
-VideoUrls=[{"filename": "file:///home/sadman/.local/share/live-wallpapers/gojo-vs-sukuna-desktophut.mp4", "enabled": true, "loop": true, "playbackRate": 0, "alternativePlaybackRate": 0, "duration": 0, "customDuration": 0}]
+VideoUrls=[{"filename": "file:///home/sadman/.local/share/live-wallpapers/prana-system-error-h264.mp4", "enabled": true, "loop": true, "playbackRate": 0, "alternativePlaybackRate": 0, "duration": 22866, "customDuration": 0}]
 
 [Containments][1][Wallpaper][luisbocanegra.smart.video.wallpaper.reborn][General]
-LastVideo=file:///home/sadman/.local/share/live-wallpapers/gojo-vs-sukuna-desktophut.mp4
-LastVideoPosition=6710
+LastVideo=file:///home/sadman/.local/share/live-wallpapers/prana-system-error-h264.mp4
+LastVideoPosition=17433
 MuteMode=1
-VideoUrls=[{"filename": "file:///home/sadman/.local/share/live-wallpapers/gojo-vs-sukuna-desktophut.mp4", "enabled": true, "loop": true, "playbackRate": 0, "alternativePlaybackRate": 0, "duration": 0, "customDuration": 0}]
+VideoUrls=[{"filename": "file:///home/sadman/.local/share/live-wallpapers/prana-system-error-h264.mp4", "enabled": true, "loop": true, "playbackRate": 0, "alternativePlaybackRate": 0, "duration": 22866, "customDuration": 0}]
 
 [Containments][20]
 activityId=
@@ -59,7 +65,7 @@ immutability=1
 plugin=org.kde.plasma.digitalclock
 
 [Containments][20][Applets][25][Configuration]
-popupHeight=400
+popupHeight=451
 popupWidth=560
 
 [Containments][20][Applets][26]
@@ -110,19 +116,27 @@ migrated=true
 
 [Containments][20][Applets][26][Applets][35]
 immutability=1
-plugin=org.kde.plasma.brightness
+plugin=org.kde.plasma.keyboardindicator
 
 [Containments][20][Applets][26][Applets][36]
 immutability=1
-plugin=org.kde.plasma.battery
+plugin=org.kde.plasma.weather
 
 [Containments][20][Applets][26][Applets][37]
 immutability=1
 plugin=org.kde.plasma.mediacontroller
 
+[Containments][20][Applets][26][Applets][41]
+immutability=1
+plugin=org.kde.plasma.brightness
+
+[Containments][20][Applets][26][Applets][42]
+immutability=1
+plugin=org.kde.plasma.battery
+
 [Containments][20][Applets][26][General]
-extraItems=org.kde.kdeconnect,org.kde.plasma.cameraindicator,org.kde.plasma.clipboard,org.kde.plasma.devicenotifier,org.kde.plasma.manage-inputmethod,org.kde.plasma.mediacontroller,org.kde.plasma.notifications,org.kde.plasma.battery,org.kde.plasma.brightness,org.kde.plasma.keyboardlayout,org.kde.plasma.volume
-knownItems=org.kde.kdeconnect,org.kde.plasma.cameraindicator,org.kde.plasma.clipboard,org.kde.plasma.devicenotifier,org.kde.plasma.manage-inputmethod,org.kde.plasma.mediacontroller,org.kde.plasma.notifications,org.kde.plasma.battery,org.kde.plasma.brightness,org.kde.plasma.keyboardlayout,org.kde.plasma.volume
+extraItems=org.kde.kdeconnect,org.kde.plasma.cameraindicator,org.kde.plasma.clipboard,org.kde.plasma.devicenotifier,org.kde.plasma.manage-inputmethod,org.kde.plasma.mediacontroller,org.kde.plasma.notifications,org.kde.plasma.battery,org.kde.plasma.brightness,org.kde.plasma.keyboardlayout,org.kde.plasma.volume,org.kde.plasma.keyboardindicator,org.kde.plasma.weather
+knownItems=org.kde.kdeconnect,org.kde.plasma.cameraindicator,org.kde.plasma.clipboard,org.kde.plasma.devicenotifier,org.kde.plasma.manage-inputmethod,org.kde.plasma.mediacontroller,org.kde.plasma.notifications,org.kde.plasma.battery,org.kde.plasma.brightness,org.kde.plasma.keyboardlayout,org.kde.plasma.volume,org.kde.plasma.keyboardindicator,org.kde.plasma.weather
 
 [Containments][20][Applets][39]
 immutability=1
@@ -132,8 +146,26 @@ plugin=org.kde.plasma.icontasks
 iconSize=3
 launchers=file:///usr/share/applications/com.mitchellh.ghostty.desktop,applications:systemsettings.desktop,preferred://browser,applications:onlyoffice-desktopeditors.desktop
 
+[Containments][20][Applets][40]
+immutability=1
+plugin=org.kde.plasma.weather
+
+[Containments][20][Applets][40][Configuration]
+popupHeight=322
+popupWidth=337
+
+[Containments][20][Applets][40][Configuration][Appearance]
+showTemperatureInBadge=true
+showTemperatureInCompactMode=true
+
+[Containments][20][Applets][40][Configuration][WeatherStation]
+placeDisplayName=Dhaka, Bangladesh
+placeInfo=Dhaka, Bangladesh, BD|1185241
+provider=bbcukmet
+source=bbcukmet|weather|Dhaka, Bangladesh, BD
+
 [Containments][20][General]
-AppletOrder=21;25;26;39
+AppletOrder=21;25;26;39;40
 
 [ScreenMapping]
 itemsOnDisabledScreens=
