@@ -1,63 +1,53 @@
 #!/usr/bin/env python3
 """
 live-wallpaper-picker — browse and pick live wallpapers.
-
-Shows a grid of animated thumbnails for every video wallpaper in
-~/.local/share/live-wallpapers/. A separate "Online" tab lists trending
-wallpapers from MoeWalls with thumbnails — click Download to fetch.
-
-Usage:
-    live-wallpaper-picker
 """
 import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
-import os
-import sys
-import random
-import subprocess
-import threading
-import urllib.request
-import re
-import json
+import sys, random, subprocess, threading, urllib.request, re, json
 from pathlib import Path
-
 from gi.repository import Gtk, Adw, GLib, Gdk, Gio, Pango
 
-# ─── Constants ─────────────────────────────────────────────────────────────
 WALLPAPER_DIR = Path.home() / ".local" / "share" / "live-wallpapers"
-THUMB_DIR = Path.home() / ".cache" / "live-wallpaper-thumbs"
-ONLINE_CACHE = Path.home() / ".cache" / "live-wallpaper-online"
+THUMB_DIR     = Path.home() / ".cache" / "live-wallpaper-thumbs"
+ONLINE_CACHE  = Path.home() / ".cache" / "live-wallpaper-online"
 for d in (WALLPAPER_DIR, THUMB_DIR, ONLINE_CACHE):
     d.mkdir(parents=True, exist_ok=True)
 
+CARD_W, CARD_H = 200, 120
 
-# ─── Helpers ───────────────────────────────────────────────────────────────
+CSS = b"""
+#wallpaper-card {
+    background-color: rgba(30, 30, 46, 0.8);
+    border-radius: 12px;
+    padding: 8px;
+}
+#wallpaper-card:hover {
+    background-color: rgba(49, 50, 68, 0.95);
+}
+"""
+
 def generate_thumbnail(video_path: Path):
-    """Extract one frame from a video as a thumbnail using ffmpeg."""
-    thumb_path = THUMB_DIR / (video_path.stem + ".png")
-    if thumb_path.exists():
-        return thumb_path
+    thumb = THUMB_DIR / (video_path.stem + ".png")
+    if thumb.exists():
+        return thumb
     try:
         subprocess.run(
             ["ffmpeg", "-y", "-ss", "00:00:01", "-i", str(video_path),
-             "-frames:v", "1", "-vf", "scale=320:-1", str(thumb_path)],
-            capture_output=True, timeout=10,
-        )
-        return thumb_path if thumb_path.exists() else None
+             "-frames:v", "1", "-vf", "scale=320:-1", str(thumb)],
+            capture_output=True, timeout=10)
+        return thumb if thumb.exists() else None
     except Exception:
         return None
 
-
 def set_wallpaper(video_path: str):
-    """Set the wallpaper via mpvpaper on all monitors."""
     for proc in ("mpvpaper", "swww-daemon"):
         subprocess.Popen(["pkill", "-x", proc],
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
-        monitors = json.loads(
-            subprocess.check_output(["hyprctl", "monitors", "-j"]))
+        monitors = json.loads(subprocess.check_output(["hyprctl", "monitors", "-j"]))
         for m in monitors:
             subprocess.Popen(
                 ["mpvpaper", "-f", "-o",
@@ -67,307 +57,291 @@ def set_wallpaper(video_path: str):
     except Exception:
         pass
 
-
 def parse_online_wallpapers(html: str):
-    """Parse MoeWalls anime category HTML for wallpaper entries."""
-    # Links and thumbnails are in separate HTML elements, so extract them
-    # independently and match by slug.
     raw_links = re.findall(r'href="(https://moewalls\.com/anime/([^/]+)/?)"', html)
     raw_thumbs = {}
-    for thumb_url in re.findall(r'src="(https://[^"]+-thumb[^"]*\.jpg)"', html):
-        # /wp-content/uploads/2026/08/slug-name-thumb-364x205.jpg  →  slug-name
-        fname = thumb_url.rsplit("/", 1)[-1]
-        slug = re.sub(r'-thumb-\d+x\d+\.jpg$', "", fname)
-        raw_thumbs[slug] = thumb_url
-
+    for turl in re.findall(r'src="(https://[^"]+-thumb[^"]*\.jpg)"', html):
+        fname = turl.rsplit("/", 1)[-1]
+        slug  = re.sub(r'-thumb-\d+x\d+\.jpg$', "", fname)
+        raw_thumbs[slug] = turl
     seen, results = set(), []
     for page_url, slug in raw_links:
         if slug in seen:
             continue
         seen.add(slug)
         title = slug.replace("-", " ").title().replace(" Live Wallpaper", "")
-        results.append({"title": title, "slug": slug,
-                        "page_url": page_url,
+        results.append({"title": title, "slug": slug, "page_url": page_url,
                         "thumb_url": raw_thumbs.get(slug.replace("-live-wallpaper", ""), "")})
     return results
 
-
 def download_online_wallpaper(wallpaper: dict):
-    """Download a wallpaper from MoeWalls by scraping the page for video."""
     try:
-        req = urllib.request.Request(
-            wallpaper["page_url"],
-            headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64)"})
+        req = urllib.request.Request(wallpaper["page_url"],
+                headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64)"})
         html = urllib.request.urlopen(req, timeout=15).read().decode("utf-8", "replace")
     except Exception:
         return None
-
-    mp4s = re.findall(r'https?://[^"\'>\s]+/wp-content/uploads/[^"\'>\s]+\.mp4', html)
+    mp4s  = re.findall(r'https?://[^"\'>\s]+/wp-content/uploads/[^"\'>\s]+\.mp4', html)
     webms = re.findall(r'https?://[^"\'>\s]+/wp-content/uploads/[^"\'>\s]+\.webm', html)
-    download_url = next(iter(mp4s + webms), None)
-    if not download_url:
+    url   = next(iter(mp4s + webms), None)
+    if not url:
         return None
-
-    out_file = WALLPAPER_DIR / f"{wallpaper['slug']}.mp4"
+    out = WALLPAPER_DIR / f"{wallpaper['slug']}.mp4"
     try:
-        req = urllib.request.Request(download_url,
-                                     headers={"User-Agent": "Mozilla/5.0"})
-        data = urllib.request.urlopen(req, timeout=120).read()
-        out_file.write_bytes(data)
-        return out_file
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        out.write_bytes(urllib.request.urlopen(req, timeout=120).read())
+        return out
     except Exception:
         return None
 
 
-# ─── Local wallpaper card ──────────────────────────────────────────────────
-class LocalWallpaperCard(Gtk.Box):
+# ─── Cards ─────────────────────────────────────────────────────────────────
+class LocalCard(Gtk.Box):
     def __init__(self, video_path: Path, picker):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        self.set_name("wallpaper-card")
         self.video_path = video_path
         self.picker = picker
-        self.set_css_classes(["wallpaper-card"])
 
-        self.picture = Gtk.Picture()
-        self.picture.set_size_request(200, 120)
-        self.append(self.picture)
+        pic = Gtk.Picture()
+        pic.set_size_request(CARD_W, CARD_H)
+        pic.set_content_fit(Gtk.ContentFit.FILL)
+        self.append(pic)
+        self._pic = pic
 
-        thumb = generate_thumbnail(video_path)
-        if thumb:
-            tex = Gdk.Texture.new_from_file(Gio.File.new_for_path(str(thumb)))
-            self.picture.set_paintable(tex)
+        threading.Thread(target=self._gen_thumb, args=(video_path,), daemon=True).start()
 
         name = video_path.stem.replace("-", " ").replace("_", " ").title()
-        if len(name) > 28:
-            name = name[:25] + "…"
+        if len(name) > 26: name = name[:23] + "…"
         lbl = Gtk.Label(label=name)
-        lbl.set_max_width_chars(28)
+        lbl.set_max_width_chars(24)
         lbl.set_ellipsize(Pango.EllipsizeMode.END)
         self.append(lbl)
 
         btn = Gtk.Button(label="Apply")
         btn.set_css_classes(["suggested-action"])
-        btn.connect("clicked", self._on_apply)
+        btn.connect("clicked", lambda *_: (set_wallpaper(str(video_path)),
+                                           picker.toast(f"Set: {video_path.stem}")))
         self.append(btn)
 
-    def _on_apply(self, _btn):
-        set_wallpaper(str(self.video_path))
-        self.picker.toast(f"Wallpaper set: {self.video_path.stem}")
+    def _gen_thumb(self, vp):
+        thumb = generate_thumbnail(vp)
+        if thumb:
+            GLib.idle_add(self._set_pix, str(thumb))
+
+    def _set_pix(self, path):
+        try:
+            self._pic.set_paintable(
+                Gdk.Texture.new_from_file(Gio.File.new_for_path(path)))
+        except Exception:
+            pass
 
 
-# ─── Online wallpaper card ─────────────────────────────────────────────────
-class OnlineWallpaperCard(Gtk.Box):
+class OnlineCard(Gtk.Box):
     def __init__(self, wallpaper: dict, picker):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        self.wallpaper = wallpaper
+        self.set_name("wallpaper-card")
+        self.wp = wallpaper
         self.picker = picker
-        self.downloaded = False
-        self.set_css_classes(["wallpaper-card"])
+        self.done = False
 
-        self.picture = Gtk.Picture()
-        self.picture.set_size_request(200, 120)
-        self.append(self.picture)
+        pic = Gtk.Picture()
+        pic.set_size_request(CARD_W, CARD_H)
+        pic.set_content_fit(Gtk.ContentFit.FILL)
+        self.append(pic)
+        self._pic = pic
 
         threading.Thread(target=self._load_thumb, daemon=True).start()
 
         title = wallpaper["title"]
-        if len(title) > 28:
-            title = title[:25] + "…"
+        if len(title) > 26: title = title[:23] + "…"
         lbl = Gtk.Label(label=title)
-        lbl.set_max_width_chars(28)
+        lbl.set_max_width_chars(24)
         lbl.set_ellipsize(Pango.EllipsizeMode.END)
         self.append(lbl)
 
         self.btn = Gtk.Button(label="Download & Apply")
         self.btn.set_css_classes(["suggested-action"])
-        self.btn.connect("clicked", self._on_download)
+        self.btn.connect("clicked", self._on_dl)
         self.append(self.btn)
 
     def _load_thumb(self):
-        thumb_path = ONLINE_CACHE / f"{self.wallpaper['slug']}.jpg"
-        if not thumb_path.exists():
+        p = ONLINE_CACHE / f"{self.wp['slug']}.jpg"
+        if not p.exists():
             try:
-                req = urllib.request.Request(
-                    self.wallpaper["thumb_url"],
-                    headers={"User-Agent": "Mozilla/5.0"})
-                thumb_path.write_bytes(
-                    urllib.request.urlopen(req, timeout=10).read())
+                req = urllib.request.Request(self.wp["thumb_url"],
+                        headers={"User-Agent": "Mozilla/5.0"})
+                p.write_bytes(urllib.request.urlopen(req, timeout=10).read())
             except Exception:
                 return
-        GLib.idle_add(self._set_thumb, str(thumb_path))
+        GLib.idle_add(self._set_pix, str(p))
 
-    def _set_thumb(self, thumb_path: str):
-        tex = Gdk.Texture.new_from_file(Gio.File.new_for_path(thumb_path))
-        self.picture.set_paintable(tex)
+    def _set_pix(self, path):
+        try:
+            self._pic.set_paintable(
+                Gdk.Texture.new_from_file(Gio.File.new_for_path(path)))
+        except Exception:
+            pass
 
-    def _on_download(self, _btn):
-        if self.downloaded:
-            return
+    def _on_dl(self, _):
+        if self.done: return
         self.btn.set_label("Downloading…")
         self.btn.set_sensitive(False)
-        threading.Thread(target=self._download_thread, daemon=True).start()
+        threading.Thread(target=self._dl_thread, daemon=True).start()
 
-    def _download_thread(self):
-        result = download_online_wallpaper(self.wallpaper)
-        GLib.idle_add(self._download_done, result)
+    def _dl_thread(self):
+        res = download_online_wallpaper(self.wp)
+        GLib.idle_add(self._dl_done, res)
 
-    def _download_done(self, result):
-        if result:
-            self.downloaded = True
+    def _dl_done(self, res):
+        if res:
+            self.done = True
             self.btn.set_label("Applied ✓")
-            set_wallpaper(str(result))
-            self.picker.toast(f"Downloaded & applied: {result.stem}")
+            set_wallpaper(str(res))
+            self.picker.toast(f"Downloaded: {res.stem}")
         else:
-            self.btn.set_label("Download failed")
-            self.btn.add_css_class("error")
+            self.btn.set_label("Retry")
             self.btn.set_sensitive(True)
-            self.picker.toast("Download failed — try another")
+            self.picker.toast("Download failed")
 
 
 # ─── Main window ───────────────────────────────────────────────────────────
-class LiveWallpaperPicker(Adw.ApplicationWindow):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+class PickerWindow(Adw.ApplicationWindow):
+    def __init__(self, **kw):
+        super().__init__(**kw)
         self.set_title("Live Wallpaper Picker")
-        self.set_default_size(900, 600)
+        self.set_default_size(960, 680)
 
-        self.toast_overlay = Adw.ToastOverlay()
-        self.set_content(self.toast_overlay)
+        toast_ovl = Adw.ToastOverlay()
+        self.set_content(toast_ovl)
+        self._toast = toast_ovl
 
-        main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self.toast_overlay.set_child(main_box)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        toast_ovl.set_child(box)
 
-        header = Adw.HeaderBar()
-        main_box.append(header)
+        hdr = Adw.HeaderBar()
+        box.append(hdr)
 
-        refresh_btn = Gtk.Button(icon_name="view-refresh-symbolic")
-        refresh_btn.set_tooltip_text("Refresh wallpaper list")
-        refresh_btn.connect("clicked", self._on_refresh)
-        header.pack_start(refresh_btn)
+        rbtn = Gtk.Button(icon_name="view-refresh-symbolic")
+        rbtn.connect("clicked", lambda *_: (self._fill_local(),
+                self.toast("Refreshed"),
+                threading.Thread(target=self._fetch_online, daemon=True).start()))
+        hdr.pack_start(rbtn)
 
-        random_btn = Gtk.Button(icon_name="media-playlist-shuffle-symbolic")
-        random_btn.set_tooltip_text("Set random local wallpaper")
-        random_btn.connect("clicked", self._on_random)
-        header.pack_start(random_btn)
+        sbtn = Gtk.Button(icon_name="media-playlist-shuffle-symbolic")
+        sbtn.connect("clicked", self._random)
+        hdr.pack_start(sbtn)
 
-        self.views = Adw.ViewStack()
-        switcher = Adw.ViewSwitcher()
-        switcher.set_policy(Adw.ViewSwitcherPolicy.WIDE)
-        switcher.set_stack(self.views)
-        main_box.append(switcher)
-        main_box.append(self.views)
+        self.stack = Adw.ViewStack()
+        sw = Adw.ViewSwitcher()
+        sw.set_policy(Adw.ViewSwitcherPolicy.WIDE)
+        sw.set_stack(self.stack)
+        box.append(sw)
+        box.append(self.stack)
 
-        # Local tab
-        local_scroll = Gtk.ScrolledWindow(vexpand=True)
-        self.local_flow = Gtk.FlowBox(
-            max_children_per_line=4, min_children_per_line=2,
-            homogeneous=True, selection_mode=Gtk.SelectionMode.NONE,
-            margin_start=12, margin_end=12, margin_top=12, margin_bottom=12,
-            row_spacing=12, column_spacing=12,
-        )
-        local_scroll.set_child(self.local_flow)
-        local_page = self.views.add_titled(child=local_scroll, name="local",
-                                           title="Local")
-        local_page.set_icon_name("user-home-symbolic")
+        # Local
+        ls = Gtk.ScrolledWindow(vexpand=True)
+        self.lf = Gtk.FlowBox(max_children_per_line=4, min_children_per_line=2,
+                homogeneous=True, selection_mode=Gtk.SelectionMode.NONE,
+                margin_start=12, margin_end=12, margin_top=12, margin_bottom=12,
+                row_spacing=12, column_spacing=12)
+        ls.set_child(self.lf)
+        pg = self.stack.add_titled(child=ls, name="local", title="Local")
+        pg.set_icon_name("folder-pictures-symbolic")
 
-        # Online tab
-        online_scroll = Gtk.ScrolledWindow(vexpand=True)
-        self.online_flow = Gtk.FlowBox(
-            max_children_per_line=4, min_children_per_line=2,
-            homogeneous=True, selection_mode=Gtk.SelectionMode.NONE,
-            margin_start=12, margin_end=12, margin_top=12, margin_bottom=12,
-            row_spacing=12, column_spacing=12,
-        )
-        online_page = self.views.add_titled(child=online_scroll, name="online",
-                                            title="Online")
-        online_page.set_icon_name("network-server-symbolic")
+        # Online
+        os = Gtk.ScrolledWindow(vexpand=True)
+        self.of = Gtk.FlowBox(max_children_per_line=4, min_children_per_line=2,
+                homogeneous=True, selection_mode=Gtk.SelectionMode.NONE,
+                margin_start=12, margin_end=12, margin_top=12, margin_bottom=12,
+                row_spacing=12, column_spacing=12)
+        os.set_child(self.of)
+        pg = self.stack.add_titled(child=os, name="online", title="Online")
+        pg.set_icon_name("network-server-symbolic")
 
-        self._populate_local()
+        # Loading placeholder
+        self.of.append(Gtk.Label(label="Loading trending wallpapers…",
+                        margin_top=40, css_classes=["dim-label"]))
+
+        self._fill_local()
         threading.Thread(target=self._fetch_online, daemon=True).start()
 
-    def _populate_local(self):
-        while True:
-            child = self.local_flow.get_first_child()
-            if child is None:
-                break
-            self.local_flow.remove(child)
-
-        videos = sorted(WALLPAPER_DIR.glob("*.mp4"))
-        videos += sorted(WALLPAPER_DIR.glob("*.webm"))
-
-        if not videos:
-            self.local_flow.append(Adw.StatusPage(
-                title="No local wallpapers",
+    def _fill_local(self):
+        c = self.lf.get_first_child()
+        while c:
+            nxt = c.get_next_sibling()
+            self.lf.remove(c)
+            c = nxt
+        vids = sorted(WALLPAPER_DIR.glob("*.mp4")) + sorted(WALLPAPER_DIR.glob("*.webm"))
+        if not vids:
+            self.lf.append(Adw.StatusPage(title="No local wallpapers",
                 description=f"Add videos to {WALLPAPER_DIR}"))
             return
-
-        for video in videos:
-            self.local_flow.append(LocalWallpaperCard(video, self))
+        for v in vids:
+            self.lf.append(LocalCard(v, self))
 
     def _fetch_online(self):
-        wallpapers = []
+        wps = []
         for page in range(1, 4):
             url = (f"https://moewalls.com/category/anime/page/{page}/"
                    if page > 1 else "https://moewalls.com/category/anime/")
             try:
-                req = urllib.request.Request(
-                    url, headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64)"})
-                html = urllib.request.urlopen(req, timeout=15).read().decode("utf-8", "replace")
-                wallpapers.extend(parse_online_wallpapers(html))
+                req = urllib.request.Request(url,
+                        headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64)"})
+                wps.extend(parse_online_wallpapers(
+                    urllib.request.urlopen(req, timeout=15).read().decode("utf-8", "replace")))
             except Exception:
-                continue
-        GLib.idle_add(self._populate_online, wallpapers)
+                pass
+        GLib.idle_add(self._fill_online, wps)
 
-    def _populate_online(self, wallpapers):
-        while True:
-            child = self.online_flow.get_first_child()
-            if child is None:
-                break
-            self.online_flow.remove(child)
-
-        if not wallpapers:
-            self.online_flow.append(Adw.StatusPage(
-                title="Connection failed",
+    def _fill_online(self, wps):
+        c = self.of.get_first_child()
+        while c:
+            nxt = c.get_next_sibling()
+            self.of.remove(c)
+            c = nxt
+        if not wps:
+            self.of.append(Adw.StatusPage(title="Connection failed",
                 description="Could not fetch wallpapers. Check your internet."))
             return
+        for w in wps:
+            self.of.append(OnlineCard(w, self))
 
-        for w in wallpapers:
-            self.online_flow.append(OnlineWallpaperCard(w, self))
+    def _random(self, _):
+        vids = sorted(WALLPAPER_DIR.glob("*.mp4")) + sorted(WALLPAPER_DIR.glob("*.webm"))
+        if vids:
+            ch = random.choice(vids)
+            set_wallpaper(str(ch))
+            self.toast(f"Random: {ch.stem}")
 
-    def _on_refresh(self, _btn):
-        self._populate_local()
-        self.toast("Refreshed local wallpapers")
-        threading.Thread(target=self._fetch_online, daemon=True).start()
-
-    def _on_random(self, _btn):
-        videos = sorted(WALLPAPER_DIR.glob("*.mp4"))
-        videos += sorted(WALLPAPER_DIR.glob("*.webm"))
-        if videos:
-            choice = random.choice(videos)
-            set_wallpaper(str(choice))
-            self.toast(f"Random: {choice.stem}")
-
-    def toast(self, message: str):
-        t = Adw.Toast.new(message)
+    def toast(self, msg):
+        t = Adw.Toast.new(msg)
         t.set_timeout(3)
-        self.toast_overlay.add_toast(t)
+        self._toast.add_toast(t)
 
 
-# ─── Application ───────────────────────────────────────────────────────────
-class LiveWallpaperPickerApp(Adw.Application):
+# ─── App ───────────────────────────────────────────────────────────────────
+class App(Adw.Application):
     def __init__(self):
         super().__init__(application_id="dev.sadman.LiveWallpaperPicker")
+        self.style_manager = self.get_style_manager()
+        self.style_manager.set_color_scheme(Adw.ColorScheme.FORCE_DARK)
 
     def do_activate(self):
+        provider = Gtk.CssProvider()
+        provider.load_from_data(CSS)
+        Gtk.StyleContext.add_provider_for_display(
+            Gdk.Display.get_default(), provider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+
         win = self.props.active_window
         if not win:
-            win = LiveWallpaperPicker(application=self)
+            win = PickerWindow(application=self)
         win.present()
 
 
 def main():
-    app = LiveWallpaperPickerApp()
-    app.run(sys.argv)
-
+    App().run(sys.argv)
 
 if __name__ == "__main__":
     main()
