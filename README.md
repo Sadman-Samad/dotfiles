@@ -12,6 +12,7 @@ brew/Brewfile              # Minimal desktop-app bundle (aerospace, sketchybar, 
 ghostty/config             # Ghostty terminal config
 git/gitconfig              # Git config
 kitty/kitty.conf           # Kitty terminal config
+nvim/                      # LazyVim config (TypeScript, Flutter, Prettier, auto-save + format)
 p10k/p10k.zsh              # Powerlevel10k prompt
 zsh/                       # zshrc, zshenv, zprofile
 
@@ -33,6 +34,7 @@ ln -sf "$PWD/zsh/zprofile"             ~/.zprofile
 ln -sf "$PWD/p10k/p10k.zsh"            ~/.p10k.zsh
 ln -sf "$PWD/ghostty/config"           "$HOME/Library/Application Support/com.mitchellh.ghostty/config"
 ln -sf "$PWD/kitty/kitty.conf"         ~/.config/kitty/kitty.conf
+ln -sfn "$PWD/nvim"                    ~/.config/nvim
 
 # 4. Enable in macOS
 #    - AeroSpace: System Settings → General → Login Items → confirm "Allow in Background"
