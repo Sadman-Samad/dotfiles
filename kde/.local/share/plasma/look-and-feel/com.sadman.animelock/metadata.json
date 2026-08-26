@@ -13,5 +13,6 @@
     "Name": "AnimeLock",
     "Website": ""
   },
-  "Keywords": "lock;screen;anime;"
+  "Keywords": "lock;screen;anime;",
+  "X-Plasma-APIVersion": "2"
 }

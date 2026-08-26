@@ -1,5 +1,6 @@
 /*
     SPDX-FileCopyrightText: 2014 Aleix Pol Gonzalez <aleixpol@blue-systems.com>
+
     SPDX-License-Identifier: GPL-2.0-or-later
 
     AnimeLock: stock Breeze lock screen with an animated anime backdrop
@@ -24,6 +25,7 @@ Item {
     implicitWidth: 800
     implicitHeight: 600
 
+    // Animated anime backdrop under the UI
     AnimeBackdrop {
         anchors.fill: parent
     }

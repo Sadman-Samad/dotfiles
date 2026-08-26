@@ -198,25 +198,6 @@ Item {
         Component.onCompleted: launchAnimation.start();
 
 
-        DropShadow {
-            id: clockShadow
-            anchors.fill: clock
-            source: clock
-            visible: !lockScreenUi.softwareRendering && config.alwaysShowClock
-            radius: 7
-            verticalOffset: 0.8
-            samples: 15
-            spread: 0.2
-            color : Qt.rgba(0, 0, 0, 0.7)
-            opacity: lockScreenRoot.uiVisible ? 0 : 1
-            Behavior on opacity {
-                OpacityAnimator {
-                    duration: Kirigami.Units.veryLongDuration * 2
-                    easing.type: Easing.InOutQuad
-                }
-            }
-        }
-
         // AnimeLock clock: bottom-left, big, modern
         Column {
             id: animeClock
@@ -284,6 +265,14 @@ Item {
             height: lockScreenRoot.height + Kirigami.Units.gridUnit * 3
             focus: true //StackView is an implicit focus scope, so we need to give this focus so the item inside will have it
 
+            // fade password UI out when idle (replaces stock WallpaperFader states)
+            opacity: lockScreenRoot.uiVisible ? 1 : 0
+            Behavior on opacity {
+                OpacityAnimator {
+                    duration: Kirigami.Units.veryLongDuration * 2
+                    easing.type: Easing.InOutQuad
+                }
+            }
             // this isn't implicit, otherwise items still get processed for the scenegraph
             visible: opacity > 0
 
@@ -391,6 +380,16 @@ Item {
                 margins: Kirigami.Units.smallSpacing
             }
             spacing: Kirigami.Units.smallSpacing
+
+            // fade footer out when idle (replaces stock WallpaperFader states)
+            opacity: lockScreenRoot.uiVisible ? 1 : 0
+            visible: opacity > 0
+            Behavior on opacity {
+                OpacityAnimator {
+                    duration: Kirigami.Units.veryLongDuration * 2
+                    easing.type: Easing.InOutQuad
+                }
+            }
 
             PlasmaComponents3.ToolButton {
                 id: virtualKeyboardButton
