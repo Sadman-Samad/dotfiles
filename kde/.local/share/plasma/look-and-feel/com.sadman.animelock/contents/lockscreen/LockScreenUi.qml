@@ -11,6 +11,7 @@ import QtQuick.Layouts
 import Qt5Compat.GraphicalEffects
 
 import org.kde.plasma.components as PlasmaComponents3
+import org.kde.plasma.clock as PlasmaClock
 import org.kde.plasma.workspace.components as PW
 import org.kde.plasma.private.keyboardindicator as KeyboardIndicator
 import org.kde.kirigami as Kirigami
@@ -196,15 +197,6 @@ Item {
 
         Component.onCompleted: launchAnimation.start();
 
-        WallpaperFader {
-            anchors.fill: parent
-            state: lockScreenRoot.uiVisible ? "on" : "off"
-            source: wallpaper
-            mainStack: mainStack
-            footer: footer
-            clock: clock
-            alwaysShowClock: config.alwaysShowClock && !config.hideClockWhenIdle
-        }
 
         DropShadow {
             id: clockShadow
@@ -225,13 +217,48 @@ Item {
             }
         }
 
-        Clock {
-            id: clock
-            property Item shadow: clockShadow
-            visible: y > 0 && config.alwaysShowClock
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: (mainBlock.userList.y + mainStack.y)/2 - height/2
-            Layout.alignment: Qt.AlignBaseline
+        // AnimeLock clock: bottom-left, big, modern
+        Column {
+            id: animeClock
+            anchors {
+                left: parent.left
+                bottom: parent.bottom
+                leftMargin: Kirigami.Units.gridUnit * 2.5
+                bottomMargin: Kirigami.Units.gridUnit * 2.5
+            }
+            spacing: Kirigami.Units.smallSpacing
+            // fade the clock out when password UI is up, keep it visible when idle
+            opacity: lockScreenRoot.uiVisible ? 0 : 1
+            visible: opacity > 0
+            Behavior on opacity {
+                OpacityAnimator { duration: Kirigami.Units.veryLongDuration }
+            }
+
+            PlasmaComponents3.Label {
+                text: Qt.formatTime(timeSource.dateTime, Qt.locale(), Locale.ShortFormat)
+                textFormat: Text.PlainText
+                font.pointSize: Math.round(Kirigami.Theme.defaultFont.pointSize * 6.5)
+                font.weight: Font.DemiBold
+                font.letterSpacing: -2.0
+                renderType: Text.NativeRendering
+                style: Text.Outline
+                styleColor: "transparent"
+                color: "#f5f7fa"
+            }
+            PlasmaComponents3.Label {
+                text: Qt.formatDate(timeSource.dateTime, Qt.locale(), Locale.LongFormat)
+                color: "#c9d3dd"
+                font.pointSize: Math.round(Kirigami.Theme.defaultFont.pointSize * 1.6)
+                renderType: Text.NativeRendering
+                style: Text.Outline
+                styleColor: "transparent"
+                textFormat: Text.PlainText
+            }
+        }
+
+        PlasmaClock.Clock {
+            id: timeSource
+            trackSeconds: Qt.locale().timeFormat(Locale.ShortFormat).includes("s")
         }
 
         ListModel {
