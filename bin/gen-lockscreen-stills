@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Regenerate lock screen stills (~/.local/share/lockscreen-stills) from the
+# live wallpapers in ~/.local/share/live-wallpapers via ffmpeg.
+# Stills are 1920x1080 landscape crops; the AnimeLock LnF package rotates
+# through them behind the clock.
+set -euo pipefail
+
+WALL_DIR="${1:-$HOME/.local/share/live-wallpapers}"
+OUT_DIR="${HOME}/.local/share/lockscreen-stills"
+mkdir -p "$OUT_DIR"
+
+# keep in sync with AnimeBackdrop.qml stills[] list
+SLUGS=(
+  gear-5-luffy-ultimate-one-piece-live-wallpaper
+  gojo-blue-aura-desktophut
+  gojo-vs-sukuna-desktophut
+  yuuji-itadori-x-megumi-fushiguro-jujustu-kaisen-live-wallpaper
+  ichigo-blazing-katana-kurosaki-bleach-live-wallpaper
+  kakashi-sharingan-live-wallpaper
+  sousuke-aizen-bleach-thousand-year-blood-war-live-wallpaper
+)
+
+for slug in "${SLUGS[@]}"; do
+  src="$WALL_DIR/$slug.mp4"
+  if [[ ! -f "$src" ]]; then
+    echo "SKIP (missing) $slug"
+    continue
+  fi
+  dur=$(ffprobe -v error -show_entries format=duration \
+    -of csv=p=0 "$src")
+  # mid-frame still, landscape crop
+  ffmpeg -y -v error -ss "$(awk -v d="$dur" 'BEGIN{printf "%.1f", d*0.4}')" \
+    -i "$src" \
+    -vf "scale=1920:1080:force_original_aspect_ratio=increase,crop=1920:1080" \
+    -frames:v 1 -q:v 2 "$OUT_DIR/$slug.jpg"
+  echo "OK $slug"
+done
+echo "stills in $OUT_DIR"

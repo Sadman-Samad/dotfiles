@@ -9,7 +9,7 @@ import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
-import sys, random, subprocess, threading, urllib.request, re, json
+import sys, random, subprocess, threading, urllib.request, re, json, time
 from pathlib import Path
 from gi.repository import Gtk, Adw, GLib, Gdk, Gio, Pango
 
@@ -20,7 +20,7 @@ for d in (WALLPAPER_DIR, THUMB_DIR, ONLINE_CACHE):
     d.mkdir(parents=True, exist_ok=True)
 
 CARD_W, CARD_H = 200, 120
-PAGE_SIZE = 2  # pages to fetch per category
+INITIAL_PAGES = 3  # pages fetched per category on load (16 wallpapers each)
 
 # MoeWalls categories: slug → display name
 CATEGORIES = {
@@ -56,6 +56,22 @@ CSS = b"""
 .gender-female { background: rgba(245,122,194,0.2); color: #f5a3d1; }
 .gender-male   { background: rgba(137,180,250,0.2); color: #89b4fa; }
 .gender-unknown{ background: rgba(186,194,222,0.15); color: #bac2de; }
+.card-applied {
+    background-color: rgba(166, 227, 161, 0.12);
+    border: 1px solid rgba(166, 227, 161, 0.55);
+}
+.card-downloaded {
+    background-color: rgba(137, 180, 250, 0.10);
+    border: 1px solid rgba(137, 180, 250, 0.40);
+}
+.badge-applied, .badge-downloaded {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 8px;
+    background: rgba(30, 30, 46, 0.85);
+}
+.badge-applied { color: #a6e3a1; }
+.badge-downloaded { color: #89b4fa; }
 """
 
 # Keywords to guess gender from wallpaper title (best-effort)
@@ -110,12 +126,26 @@ def generate_thumbnail(video_path: Path):
     except Exception:
         return None
 
-def _plasma_eval(js: str) -> str:
-    """Run a JavaScript snippet against the running PlasmaShell via dbus."""
-    return subprocess.check_output(
-        ["qdbus6", "org.kde.plasmashell", "/PlasmaShell",
-         "org.kde.PlasmaShell.evaluateScript", js],
-        text=True, timeout=10).strip()
+def _plasma_eval(js: str, retries: int = 3):
+    """Run a JavaScript snippet against the running PlasmaShell via dbus.
+
+    Retries: plasmashell intermittently fails evaluateScript (exit 2) while
+    a video wallpaper is being torn down or the shell is busy; a retry
+    after a short wait succeeds.
+    """
+    last_err = None
+    for attempt in range(retries):
+        try:
+            return subprocess.check_output(
+                ["qdbus6", "org.kde.plasmashell", "/PlasmaShell",
+                 "org.kde.PlasmaShell.evaluateScript", js],
+                text=True, timeout=10).strip()
+        except subprocess.CalledProcessError as e:
+            last_err = e
+            time.sleep(1 + attempt)  # 1s, 2s before retry
+    raise last_err
+
+SMART_PLUGIN = "luisbocanegra.smart.video.wallpaper.reborn"
 
 def set_wallpaper(video_path: str):
     """Apply a video wallpaper on KDE Plasma.
@@ -124,7 +154,7 @@ def set_wallpaper(video_path: str):
     (luisbocanegra.smart.video.wallpaper.reborn) via the PlasmaShell dbus
     interface. The plugin reads 'VideoUrls' as a JSON array of video objects
     whose 'filename' is a file:// URL. This renders correctly on Plasma 6 /
-    KWin / Wayland (NVIDIA), unlike a from-scratch QtMultimedia wallpaper.
+    Wayland (NVIDIA), unlike a from-scratch QtMultimedia wallpaper.
     """
     url = "file://" + str(Path(video_path).expanduser().resolve())
     video_json = json.dumps([{
@@ -132,19 +162,47 @@ def set_wallpaper(video_path: str):
         "playbackRate": 0, "alternativePlaybackRate": 0,
         "duration": 0, "customDuration": 0,
     }])
-    plugin = "luisbocanegra.smart.video.wallpaper.reborn"
+    plugin = SMART_PLUGIN
+    # The payload string is embedded as a json.dumps'd JS string literal —
+    # QJS accepts double quotes fine; it was NESTED unescaped quotes that
+    # caused SyntaxError. json.dumps output needs no re-quoting.
     js = (
         "var all = desktops();"
         "for (var i = 0; i < all.length; i++) {"
         "  var d = all[i];"
  f"  d.wallpaperPlugin = {json.dumps(plugin)};"
-        "  d.currentConfigGroup = Array('Wallpaper', "
- f"    {json.dumps(plugin)}, 'General');"
+        "  d.currentConfigGroup = Array('Wallpaper',"
+ f" {json.dumps(plugin)}, 'General');"
  f"  d.writeConfig('VideoUrls', {json.dumps(video_json)});"
         "  d.reloadConfig();"
         "}"
     )
     _plasma_eval(js)
+
+def get_applied_wallpaper() -> str:
+    """Return the path of the currently applied video wallpaper ('' if none).
+
+    Reads the smart plugin's VideoUrls config back from the running Plasma
+    desktop via dbus. Non-fatal when plasmashell is down: no indicator.
+    """
+    try:
+        raw = _plasma_eval(
+            "var d = desktops()[0];"
+            "d.currentConfigGroup = Array('Wallpaper', "
+            f"{json.dumps(SMART_PLUGIN)}, 'General');"
+            "print(d.readConfig('VideoUrls'));")
+        entries = json.loads(raw) if raw else []
+        for e in entries:
+            f = e.get("filename", "")
+            if f.startswith("file://") and Path(f[7:]).exists():
+                return str(Path(f[7:]).resolve())
+        return ""
+    except Exception:
+        return ""
+
+def local_path_for(slug: str) -> Path:
+    """Local file path a MoeWalls slug downloads to."""
+    return WALLPAPER_DIR / f"{slug}.mp4"
 
 def fetch_page(category: str, page: int):
     """Fetch one page of wallpapers from a MoeWalls category. Returns list of dicts."""
@@ -287,11 +345,38 @@ class LocalCard(Gtk.Box):
         lbl.set_ellipsize(Pango.EllipsizeMode.END)
         self.append(lbl)
 
-        btn = Gtk.Button(label="Apply")
-        btn.set_css_classes(["suggested-action"])
-        btn.connect("clicked", lambda *_: (set_wallpaper(str(video_path)),
-                                           picker.toast(f"Set: {video_path.stem}")))
-        self.append(btn)
+        self.btn = Gtk.Button(label="Apply")
+        self.btn.set_css_classes(["suggested-action"])
+        self.btn.connect("clicked", self._on_apply)
+        self.append(self.btn)
+        self.refresh_state(picker._applied)
+
+    def refresh_state(self, applied: str = ""):
+        """Update button/card for currently-applied wallpaper."""
+        is_applied = applied == str(self.video_path.resolve())
+        self.btn.set_label("✓ Applied" if is_applied else "Apply")
+        self.btn.set_css_classes([] if is_applied else ["suggested-action"])
+        self.set_css_classes(["card-applied"] if is_applied else [])
+
+    def _on_apply(self, *_):
+        self.btn.set_label("⏳ Applying…")
+        self.btn.set_sensitive(False)
+        def _bg():
+            try:
+                set_wallpaper(str(self.video_path))
+                ok = True
+            except Exception:
+                ok = False
+            def _ui():
+                self.btn.set_sensitive(True)
+                if ok:
+                    self.picker.toast(f"Set: {self.video_path.stem}")
+                    self.picker.refresh_all_states()
+                else:
+                    self.picker.toast("Failed to set wallpaper")
+                return False
+            GLib.idle_add(_ui)
+        threading.Thread(target=_bg, daemon=True).start()
 
     def _gen_thumb(self, vp):
         thumb = generate_thumbnail(vp)
@@ -322,7 +407,7 @@ class OnlineCard(Gtk.Box):
         threading.Thread(target=self._load_thumb, daemon=True).start()
 
         # Title + gender badge row
-        title_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
+        self._title_box = title_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=4)
         title = wallpaper["title"]
         if len(title) > 20: title = title[:17] + "…"
         lbl = Gtk.Label(label=title)
@@ -334,14 +419,47 @@ class OnlineCard(Gtk.Box):
         gender = wallpaper.get("gender", "unknown")
         if gender != "unknown":
             badge = Gtk.Label(label="♀" if gender == "female" else "♂")
-            badge.set_css_classes([f"gender-badge", f"gender-{gender}"])
+            badge.set_css_classes(["gender-badge", f"gender-{gender}"])
             title_box.append(badge)
+
+        # 'On disk' badge when the mp4 already exists locally
+        self._dl_badge = None
+        if local_path_for(wallpaper["slug"]).exists():
+            self._dl_badge = Gtk.Label(label="⬇ saved")
+            self._dl_badge.set_css_classes(["badge-downloaded"])
+            self._dl_badge.set_tooltip_text(
+                f"Already downloaded: {local_path_for(wallpaper['slug'])}")
+            title_box.append(self._dl_badge)
         self.append(title_box)
 
         self.btn = Gtk.Button(label="⬇ Download & Apply")
         self.btn.set_css_classes(["suggested-action"])
         self.btn.connect("clicked", self._on_dl)
         self.append(self.btn)
+        self.refresh_state(self.picker._applied)
+
+    def refresh_state(self, applied: str):
+        """Sync button/classes with on-disk + currently-applied state."""
+        local = local_path_for(self.wp["slug"])
+        on_disk = local.exists()
+        is_applied = on_disk and applied == str(local.resolve())
+        if is_applied:
+            self.btn.set_label("✓ Applied")
+            self.btn.set_css_classes([])
+            self.set_css_classes(["card-applied"])
+        elif on_disk:
+            self.btn.set_label("▶ Apply")
+            self.btn.set_css_classes(["suggested-action"])
+            self.set_css_classes(["card-downloaded"])
+        else:
+            self.btn.set_label("⬇ Download & Apply")
+            self.btn.set_css_classes(["suggested-action"])
+            self.set_css_classes([])
+        if on_disk and self._dl_badge is None and self._title_box is not None:
+            self._dl_badge = Gtk.Label(label="⬇ saved")
+            self._dl_badge.set_css_classes(["badge-downloaded"])
+            self._dl_badge.set_tooltip_text(f"Already downloaded: {local}")
+            self._title_box.append(self._dl_badge)
 
     def _load_thumb(self):
         p = ONLINE_CACHE / f"{self.wp['slug']}.jpg"
@@ -363,23 +481,42 @@ class OnlineCard(Gtk.Box):
 
     def _on_dl(self, _):
         if self.done: return
+        local = local_path_for(self.wp["slug"])
+        if local.exists():
+            # Already on disk — just apply, no re-download.
+            self.btn.set_label("⏳ Applying…")
+            self.btn.set_sensitive(False)
+            threading.Thread(target=self._apply_local, daemon=True).start()
+            return
         self.btn.set_label("⏳ 0%")
         self.btn.set_sensitive(False)
         threading.Thread(target=self._dl_thread, daemon=True).start()
+
+    def _apply_local(self):
+        try:
+            set_wallpaper(str(local_path_for(self.wp["slug"])))
+            GLib.idle_add(self._dl_done, local_path_for(self.wp["slug"]))
+        except Exception:
+            GLib.idle_add(self._dl_done, None)
 
     def _dl_thread(self):
         def progress(done, total):
             pct = int(done * 100 / total) if total else 0
             GLib.idle_add(self.btn.set_label, f"⏳ {pct}%")
         res = download_online_wallpaper(self.wp, progress_cb=progress)
+        if res:
+            # Download done — now actually apply it (same path as local apply).
+            try:
+                set_wallpaper(str(res))
+            except Exception:
+                res = None
         GLib.idle_add(self._dl_done, res)
 
     def _dl_done(self, res):
         if res:
             self.done = True
-            self.btn.set_label("✓ Applied")
-            set_wallpaper(str(res))
-            self.picker.toast(f"Downloaded: {res.stem}")
+            self.picker.refresh_all_states()
+            self.picker.toast(f"Applied: {res.stem}")
         else:
             self.btn.set_label("↻ Retry")
             self.btn.set_sensitive(True)
@@ -396,6 +533,7 @@ class PickerWindow(Adw.ApplicationWindow):
         self._all_online = []   # all fetched wallpapers
         self._cur_cat = "all"
         self._cur_gender = "all"
+        self._applied = get_applied_wallpaper()  # cached; refreshed on apply
 
         toast_ovl = Adw.ToastOverlay()
         self.set_content(toast_ovl)
@@ -417,6 +555,14 @@ class PickerWindow(Adw.ApplicationWindow):
         sbtn.set_tooltip_text("Random local wallpaper")
         sbtn.connect("clicked", self._random)
         hdr.pack_start(sbtn)
+
+        # Currently applied wallpaper strip
+        self.applied_lbl = Gtk.Label(label="")
+        self.applied_lbl.set_css_classes(["dim-label"])
+        self.applied_lbl.set_ellipsize(Pango.EllipsizeMode.END)
+        self.applied_lbl.set_max_width_chars(60)
+        self.applied_lbl.set_margin_bottom(6)
+        box.append(self.applied_lbl)
 
         self.stack = Adw.ViewStack()
         sw = Adw.ViewSwitcher()
@@ -489,8 +635,12 @@ class PickerWindow(Adw.ApplicationWindow):
         self.of.append(self._loading_lbl)
 
         self._page = 1
+        name = (Path(self._applied).stem.replace("-", " ").title()
+                if self._applied else "none")
+        self.applied_lbl.set_label(f"Current wallpaper: {name}")
         self._fill_local()
-        threading.Thread(target=self._fetch_online, args=(1,), daemon=True).start()
+        threading.Thread(target=self._fetch_online, args=(1, INITIAL_PAGES),
+                         daemon=True).start()
 
     def _fill_local(self):
         c = self.lf.get_first_child()
@@ -506,9 +656,20 @@ class PickerWindow(Adw.ApplicationWindow):
         for v in vids:
             self.lf.append(LocalCard(v, self))
 
-    def _fetch_online(self, page: int):
-        wps = fetch_page(self._cur_cat, page)
-        GLib.idle_add(self._on_fetched, wps, page)
+    def _fetch_online(self, page: int, pages: int = 1):
+        """Fetch `pages` consecutive pages; deliver as one combined batch."""
+        wps, consumed = [], 0
+        for p in range(page, page + pages):
+            batch = fetch_page(self._cur_cat, p)
+            if not batch:
+                break
+            wps.extend(batch)
+            consumed += 1
+
+        def _deliver():
+            self._page = page + consumed   # first unfetched page
+            self._on_fetched(wps, page)
+        GLib.idle_add(_deliver)
 
     def _on_fetched(self, wps, page):
         if page == 1:
@@ -570,7 +731,8 @@ class PickerWindow(Adw.ApplicationWindow):
         self.of.append(Gtk.Label(label=f"Loading {CATEGORIES[self._cur_cat]}…",
                         margin_top=40, css_classes=["dim-label"]))
         self.more_btn.set_sensitive(False)
-        threading.Thread(target=self._fetch_online, args=(1,), daemon=True).start()
+        threading.Thread(target=self._fetch_online, args=(1, INITIAL_PAGES),
+                         daemon=True).start()
 
     def _on_gender_changed(self, dropdown, _param):
         idx = dropdown.get_selected()
@@ -583,11 +745,34 @@ class PickerWindow(Adw.ApplicationWindow):
         self.more_btn.set_sensitive(False)
         threading.Thread(target=self._fetch_online, args=(self._page,), daemon=True).start()
 
+    def refresh_all_states(self):
+        """Re-read the applied wallpaper (off-UI) and update every card."""
+        def _bg():
+            applied = get_applied_wallpaper()
+            def _ui():
+                self._applied = applied
+                name = (Path(applied).stem.replace("-", " ").title()
+                        if applied else "none")
+                self.applied_lbl.set_label(f"Current wallpaper: {name}")
+                for flow in (self.lf, self.of):
+                    child = flow.get_first_child()
+                    while child:
+                        card = (child.get_child()
+                                if hasattr(child, "get_child") else child)
+                        if hasattr(card, "refresh_state"):
+                            card.refresh_state(self._applied)
+                        child = child.get_next_sibling()
+                return False
+            GLib.idle_add(_ui)
+        threading.Thread(target=_bg, daemon=True).start()
+
     def _on_refresh(self, _):
         self._fill_local()
+        self.refresh_all_states()
         self.toast("Refreshed")
         self._page = 1
-        threading.Thread(target=self._fetch_online, args=(1,), daemon=True).start()
+        threading.Thread(target=self._fetch_online, args=(1, INITIAL_PAGES),
+                         daemon=True).start()
 
     def _random(self, _):
         vids = sorted(WALLPAPER_DIR.glob("*.mp4")) + sorted(WALLPAPER_DIR.glob("*.webm"))
@@ -595,6 +780,7 @@ class PickerWindow(Adw.ApplicationWindow):
             ch = random.choice(vids)
             set_wallpaper(str(ch))
             self.toast(f"Random: {ch.stem}")
+            self.refresh_all_states()
 
     def toast(self, msg):
         t = Adw.Toast.new(msg)

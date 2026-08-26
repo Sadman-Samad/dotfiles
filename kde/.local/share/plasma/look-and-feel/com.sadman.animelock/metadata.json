@@ -1,0 +1,17 @@
+{
+  "KPackageStructure": "Plasma/LookAndFeel",
+  "KPlugin": {
+    "Authors": [
+      {
+        "Name": "sadman"
+      }
+    ],
+    "Category": "Lock Screen",
+    "Description": "Anime live-wallpaper lock screen (Luffy, Gojo, Itadori, Kakashi, Ichigo, Aizen)",
+    "Id": "com.sadman.animelock",
+    "License": "GPLv2+",
+    "Name": "AnimeLock",
+    "Website": ""
+  },
+  "Keywords": "lock;screen;anime;"
+}

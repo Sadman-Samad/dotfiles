@@ -1,0 +1,8 @@
+[Daemon]
+Autolock=false
+LockGrace=0
+LockOnResume=false
+Timeout=0
+
+[Greeter]
+Theme=com.sadman.animelock
