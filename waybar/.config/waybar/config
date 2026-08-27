@@ -21,13 +21,12 @@
   ],
   "modules-right": [
     "custom/updates",
-    "cpu",
+    "custom/cpuall",
     "custom/gpu",
-    "temperature",
     "memory",
     "disk",
+    "custom/netspeed",
     "network",
-    "custom/ping",
     "pulseaudio",
     "tray"
   ],
@@ -89,19 +88,12 @@
     "return-on-click": 1
   },
 
-  "cpu": {
-    "format": "  {usage}%",
-    "format-alt-click": "click",
-    "format-alt": "  {avg_frequency} GHz",
-    "tooltip": true,
-    "tooltip-format": "Per-thread load:\n{load}"
-  },
-
-  "temperature": {
-    "hwmon-path": "/sys/class/hwmon/hwmon1/temp1_input",
-    "critical-threshold": 80,
-    "format-critical": "󰸁  {temperatureC}°C",
-    "format": "󰔏  {temperatureC}°C"
+  "custom/cpuall": {
+    "exec": "~/.config/waybar/scripts/cpu-all.sh",
+    "interval": 3,
+    "return-type": "json",
+    "format": "{}",
+    "tooltip": true
   },
 
   "custom/gpu": {
@@ -128,11 +120,17 @@
   "network": {
     "interface": "enp34s0",
     "interval": 1,
-    "format-ethernet": "󰈀  ↓{bandwidthDownBits}  ↑{bandwidthUpBits}",
-    "format-alt": "󰈀  {ifname} {ipaddr}",
-    "format-alt-click": "click",
-    "format-disconnected": "󰅞  disconnected",
-    "tooltip-format": "{ifname}\n{ipaddr}\n↓ {bandwidthDownBits}  ↑ {bandwidthUpBits}"
+    "format-ethernet": "󰈁",
+    "format-alt": "󰈁  {ifname} {ipaddr}",
+    "format-disconnected": "󰅞",
+    "tooltip-format": "{ifname}\n{ipaddr}\n󰛳 {bandwidthDownBits} ↓  {bandwidthUpBits} ↑"
+  },
+
+  "custom/netspeed": {
+    "exec": "~/.config/waybar/scripts/net-speed.sh",
+    "return-type": "json",
+    "format": "{}",
+    "tooltip": true
   },
 
   "custom/ping": {

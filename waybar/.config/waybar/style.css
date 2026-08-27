@@ -127,21 +127,14 @@ tooltip label { color: @text; }
   border-radius: 10px;
 }
 
-#cpu {
+#custom-cpuall {
   color: @peach;
   background: alpha(@peach, 0.10);
   padding: 0 12px;
   margin: 4px 2px;
   border-radius: 10px;
 }
-#temperature {
-  color: @yellow;
-  background: alpha(@yellow, 0.10);
-  padding: 0 12px;
-  margin: 4px 2px;
-  border-radius: 10px;
-}
-#temperature.critical {
+#custom-cpuall.critical {
   color: @red;
   background: alpha(@red, 0.18);
 }
@@ -168,6 +161,13 @@ tooltip label { color: @text; }
   border-radius: 10px;
 }
 #disk {
+  color: @sky;
+  background: alpha(@sky, 0.10);
+  padding: 0 12px;
+  margin: 4px 2px;
+  border-radius: 10px;
+}
+#custom-netspeed {
   color: @sky;
   background: alpha(@sky, 0.10);
   padding: 0 12px;
