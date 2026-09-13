@@ -1,0 +1,19 @@
+{
+  "KPackageStructure": "Plasma/Shell",
+  "KPlugin": {
+    "Authors": [
+      {
+        "Name": "sadman"
+      }
+    ],
+    "Category": "",
+    "Description": "Anime live-wallpaper lock screen shell package (Luffy, Gojo, Itadori, Kakashi, Ichigo, Aizen)",
+    "Id": "com.sadman.animelock",
+    "License": "GPLv2+",
+    "Name": "AnimeLock (Lock Screen)",
+    "Website": ""
+  },
+  "Keywords": "lock;screen;anime;",
+  "X-KDE-ParentApp": "org.kde.plasmashell",
+  "X-Plasma-APIVersion": "2"
+}

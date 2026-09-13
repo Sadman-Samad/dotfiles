@@ -258,3 +258,6 @@ export JAVA_HOME=/home/sadman/android-sdk/jdk-17.0.13+11
 export ANDROID_HOME=/home/sadman/android-sdk
 export ANDROID_SDK_ROOT=/home/sadman/android-sdk
 export PATH="$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$PATH"
+
+# opencode
+export PATH=/home/sadman/.opencode/bin:$PATH
