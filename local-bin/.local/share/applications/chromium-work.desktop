@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Chromium (Work)
+Comment=Chromium browser — Work profile
+Exec=/home/sadman/.local/bin/chromium-work %U
+Icon=chromium
+Terminal=false
+Categories=Network;WebBrowser;
+NoDisplay=false

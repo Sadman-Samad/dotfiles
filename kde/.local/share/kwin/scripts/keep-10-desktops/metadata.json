@@ -1,0 +1,15 @@
+{
+    "KPackageStructure": "KWin/Script",
+    "KPlugin": {
+        "Id": "keep-10-desktops",
+        "Name": "Keep 10 Desktops",
+        "Description": "Automatically re-creates virtual desktops to always keep 10 (1..10). If one is removed, a new one is created.",
+        "Version": "1.0",
+        "License": "GPL-3.0",
+        "Authors": [
+            { "Name": "local" }
+        ]
+    },
+    "X-Plasma-API": "javascript",
+    "X-Plasma-MainScript": "code/main.js"
+}

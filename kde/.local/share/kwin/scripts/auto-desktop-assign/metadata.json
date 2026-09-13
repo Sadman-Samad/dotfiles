@@ -1,0 +1,14 @@
+{
+    "KPackageStructure": "KWin/Script",
+    "KPlugin": {
+        "Id": "auto-desktop-assign",
+        "Name": "Auto Desktop Assign",
+        "Description": "Auto-assign Alacritty, Ghostty, Chromium (lian) and Chromium (Work) to their virtual desktops",
+        "Version": "1.1",
+        "Category": "Window Management",
+        "License": "GPL",
+        "Authors": [{"Name": "local"}]
+    },
+    "X-Plasma-API": "javascript",
+    "X-Plasma-MainScript": "code/main.js"
+}

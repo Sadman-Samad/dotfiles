@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Chromium (lian)
+Comment=Chromium browser — lian profile
+Exec=/home/sadman/.local/bin/chromium-lian %U
+Icon=chromium
+Terminal=false
+Categories=Network;WebBrowser;
+NoDisplay=false
