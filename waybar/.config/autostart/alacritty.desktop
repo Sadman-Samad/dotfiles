@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Name=Alacritty
+Comment=Alacritty terminal (Desktop 4)
+Type=Application
+Exec=/usr/bin/alacritty
+Icon=Alacritty
+Terminal=false
+Categories=System;TerminalEmulator;
+X-GNOME-Autostart-enabled=true
+StartupWMClass=Alacritty

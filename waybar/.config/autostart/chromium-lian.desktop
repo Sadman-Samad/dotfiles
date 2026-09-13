@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Name=Chromium (lian)
+Comment=Chromium browser — lian profile (Desktop 2)
+Type=Application
+Exec=/home/sadman/.local/bin/chromium-lian
+Icon=chromium
+Terminal=false
+Categories=Network;WebBrowser;
+X-GNOME-Autostart-enabled=true
+StartupWMClass=chromium-lian

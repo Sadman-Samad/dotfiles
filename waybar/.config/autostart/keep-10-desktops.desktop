@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Name=Keep 10 Desktops
+Comment=Keep 10 KWin virtual desktops, re-create if removed
+Type=Application
+Exec=/home/sadman/.local/bin/keep-10-desktops.sh
+Icon=preferences-system-windows
+Terminal=false
+Categories=System;
+X-GNOME-Autostart-enabled=true
+X-KDE-AutostartScript=true
