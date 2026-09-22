@@ -1,27 +1,75 @@
-# Minimal desktop-app bundle for the 2017 Mac (macOS 13 Ventura)
-# Generated from `brew bundle dump`, trimmed to desktop essentials.
-
+# Full setup for the 2017 Mac (macOS 13 Ventura) — Sadmans-MacBook-Pro.
+# Generated from `brew bundle dump` on 2026-09-22. Restore with `brew bundle`.
+# Includes glow + md2pdf (markdown→PDF) and stow (dotfiles).
 tap "felixkratz/formulae", "https://github.com/FelixKratz/homebrew-formulae"
+tap "hashicorp/tap"
 tap "nikitabobko/tap"
-
-# Window manager (i3-like tiling)
-cask "nikitabobko/tap/aerospace", trusted: true
-
-# Status bar / menu bar customization
+# Run your GitHub Actions locally
+brew "act", link: false
+# Tool for emulating mouse and keyboard events
+brew "cliclick"
+# Linux virtual machines
+brew "lima"
+# Container runtimes on MacOS (and Linux) with minimal setup
+brew "colima"
+# Pack, ship and run any application as a lightweight container
+brew "docker"
+# Isolated development environments using Docker
+brew "docker-compose"
+# Command-line fuzzy finder written in Go
+brew "fzf"
+# Distributed revision control system
+brew "git"
+# Render markdown on the CLI
+brew "glow"
+# Simple terminal UI for git commands
+brew "lazygit"
+# Open source relational database management system
+brew "mysql@8.0", restart_service: :changed
+# Create, run, and share large language models (LLMs)
+brew "ollama"
+# General-purpose scripting language
+brew "php@8.2"
+# General-purpose scripting language
+brew "php@8.3", link: true
+# Install various Ruby versions and implementations
+brew "ruby-build"
+# Ruby version manager
+brew "rbenv"
+# Organize software neatly under a single directory tree (e.g. /usr/local)
+brew "stow"
+# Terminal multiplexer
+brew "tmux"
+# Custom macOS statusbar with shell plugin, interaction and graph support
 brew "felixkratz/formulae/sketchybar", trusted: true
-cask "stats"
-
-# Terminals
-cask "ghostty"
-cask "kitty"
-
-# Fonts
+# Terraform
+brew "hashicorp/tap/terraform", trusted: true
+# AeroSpace is an i3-like tiling window manager for macOS
+cask "nikitabobko/tap/aerospace", trusted: true
 cask "font-hack-nerd-font"
 cask "font-jetbrains-mono-nerd-font"
-
-# Shell / fuzzy finder / prompt helpers
-brew "fzf"
-brew "git"
-brew "tmux"
-brew "lazygit"
-brew "cliclick"
+# Set of tools to manage resources and applications hosted on Google Cloud
+cask "gcloud-cli"
+# Terminal emulator that uses platform-native UI and GPU acceleration
+cask "ghostty"
+# GPU-based terminal emulator
+cask "kitty"
+# Document editor
+cask "onlyoffice"
+# System monitor for the menu bar
+cask "stats"
+# Menu bar customization tool
+cask "swiftbar"
+go "charm.land/glow/v3"
+go "golang.org/x/tools/gopls"
+go "github.com/solworktech/md2pdf/v2/cmd/md2pdf"
+go "honnef.co/go/tools/cmd/staticcheck"
+cargo "eza"
+cargo "zoxide"
+npm "@mermaid-js/mermaid-cli"
+npm "@nestjs/cli"
+npm "@openai/codex"
+npm "firebase-tools"
+npm "opencode-ai"
+npm "pnpm"
+npm "vercel"
