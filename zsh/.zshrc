@@ -106,6 +106,7 @@ alias fp='tmux-se'
 
 export PATH="$HOME/dotfiles:$PATH"
 export PATH="$HOME/.local/script:$PATH"
+export PATH="$HOME/go/bin:$PATH"
 export PATH="/opt/flutter/bin:$PATH"
 # Shell integrations
 
