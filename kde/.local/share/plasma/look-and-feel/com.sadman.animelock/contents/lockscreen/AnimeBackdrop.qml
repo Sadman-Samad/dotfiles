@@ -21,15 +21,21 @@ Item {
     property int idx: 0
     readonly property string currentName: stills[idx].name
 
+    // The two crossfade layers; topLayer is the one currently faded in.
+    property Image topLayer: layerA
+    readonly property Image bottomLayer: topLayer === layerA ? layerB : layerA
+
     Rectangle { anchors.fill: parent; color: "#05050a" }
 
     Image {
-        id: imgBack
+        id: layerA
         anchors.fill: parent
         fillMode: Image.PreserveAspectCrop
-        source: backdrop.stillDir + backdrop.stills[backdrop.idx].src
+        source: backdrop.stillDir + backdrop.stills[0].src
+        opacity: 1
         asynchronous: true
-        cache: false
+        cache: true
+        Behavior on opacity { NumberAnimation { duration: 1400; easing.type: Easing.InOutQuad } }
         SequentialAnimation on scale {
             running: true; loops: Animation.Infinite
             NumberAnimation { from: 1.0; to: 1.08; duration: 9000; easing.type: Easing.InOutSine }
@@ -38,18 +44,18 @@ Item {
     }
 
     Image {
-        id: imgFront
+        id: layerB
         anchors.fill: parent
         fillMode: Image.PreserveAspectCrop
         opacity: 0
         asynchronous: true
-        cache: false
+        cache: true
+        Behavior on opacity { NumberAnimation { duration: 1400; easing.type: Easing.InOutQuad } }
         SequentialAnimation on scale {
             running: true; loops: Animation.Infinite
             NumberAnimation { from: 1.0; to: 1.08; duration: 9000; easing.type: Easing.InOutSine }
             NumberAnimation { from: 1.08; to: 1.0; duration: 9000; easing.type: Easing.InOutSine }
         }
-        Behavior on opacity { NumberAnimation { duration: 1400; easing.type: Easing.InOutQuad } }
     }
 
     Timer {
@@ -58,9 +64,11 @@ Item {
         running: true
         onTriggered: {
             backdrop.idx = (backdrop.idx + 1) % backdrop.stills.length;
-            imgFront.source = backdrop.stillDir + backdrop.stills[backdrop.idx].src;
-            imgFront.opacity = 1;
-            imgBack.opacity = 0;
+            // Load the next still into the hidden layer, then crossfade and swap roles.
+            backdrop.bottomLayer.source = backdrop.stillDir + backdrop.stills[backdrop.idx].src;
+            backdrop.bottomLayer.opacity = 1;
+            backdrop.topLayer.opacity = 0;
+            backdrop.topLayer = backdrop.bottomLayer;
         }
     }
 

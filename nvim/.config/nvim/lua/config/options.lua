@@ -7,3 +7,7 @@ local opt = vim.opt
 opt.relativenumber = true
 opt.number = true
 vim.opt.clipboard:append("unnamedplus")
+
+opt.wrap = true
+opt.linebreak = true
+opt.breakindent = true

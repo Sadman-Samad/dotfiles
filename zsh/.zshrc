@@ -261,3 +261,7 @@ export PATH="$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$PATH"
 
 # opencode
 export PATH=/home/sadman/.opencode/bin:$PATH
+
+# podman: force btrfs storage driver (kernel lost overlay module; storage.conf driver line is ignored without the env var)
+export CONTAINERS_STORAGE_CONF="$HOME/.config/containers/storage.conf"
+export PATH="$HOME/.local/bin:$PATH"

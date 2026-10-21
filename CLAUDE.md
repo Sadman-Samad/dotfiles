@@ -1,159 +1,65 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code when working in this dotfiles repo (`arch` branch, Arch Linux,
+KDE Plasma 6 on Wayland). Mirrors `AGENTS.md` — same facts, keep both in sync.
 
-## Repository Overview
+## Layout
 
-This is a personal dotfiles repository using GNU Stow for symlink management. Each top-level directory represents a "package" that maps to corresponding locations in the home directory structure.
+GNU Stow packages; each top-level dir maps to `$HOME`:
 
-## Installation and Management
+| Package | Target | Notes |
+|---|---|---|
+| `kde` | `~/.config`, `~/.local/share/{kwin,sddm,plasma}` | Plasma, KWin scripts, shortcuts, SDDM/animelock |
+| `local-bin` | `~/.local/bin`, `~/.local/share/applications` | helper scripts, Chromium profile launchers |
+| `waybar` | `~/.config/waybar`, `~/.config/autostart` | bar config + scripts, autostart entries |
+| `alacritty` `kitty` `ghostty` `wezterm` | terminal configs | daily drivers: Ghostty, Kitty, Alacritty |
+| `zsh` `bash` `p10k` `tmux` `nvim` `git` `vscode` `rofi` `fcitx5` | shells/editor/tools | nvim is LazyVim (`lazy-lock.json` committed) |
+| `bin` | helper scripts | `capture-kde-config`, `sync-kde-config`, `kde-shortcuts`, `apply-shortcuts-preset`, `gen-lockscreen-stills` |
 
-**Full Installation:**
+## Setup
+
 ```bash
-./install.sh
+./install.sh   # deps, yay, packages, then stowup — full fresh-Arch bootstrap
+./stowup       # stow ALL packages (takes NO package args; fixed list inside)
+./stowDown     # unstow all
+stow -t ~ <pkg>  # manual single package
 ```
 
-**Selective Installation:**
-```bash
-./stowup <package-name>    # Install specific package (e.g., nvim, vscode)
-./stowDown <package-name>  # Remove specific package
-```
+Live `~/.local` files are real files (not symlinks) — repo holds the tracked copies.
+After editing live files, copy them back into the matching package dir before committing.
 
-**Manual Stow Commands:**
-```bash
-stow -t ~ <package-name>   # Create symlinks
-stow -D -t ~ <package-name> # Remove symlinks
-```
+## Desktop system (must-know)
 
-## Architecture and Organization
+- **Tiling: Polonium** (`poloniumEnabled=true` in kwinrc). NOT Krohnkite — ignore any
+  Krohnkite references in old scripts (`bin/setup-krohnkite` is stale, do not use).
+- **10 virtual desktops, always**, named `Desktop 1..10`, top Waybar shows `1..10`:
+  - `kde/.local/share/kwin/scripts/keep-10-desktops/` — KWin script, instantly re-inserts
+    a deleted desktop into its SAME slot (gap-aware, no renumber shuffle).
+  - `local-bin/.local/bin/keep-10-desktops.sh` — daemon backup (2s poll) + autostart
+    entry; also owns naming via D-Bus `setDesktopName`.
+  - `kde/.local/share/kwin/scripts/auto-desktop-assign/` — pins apps by position:
+    Ghostty→1, `chromium-lian`→2, Kitty→3, Alacritty→4 (position-based, UUID-proof).
+  - `autonumber-desktops` script CANNOT set names on Plasma 6 — never rely on it.
+  - D-Bus API (verified): `qdbus6 org.kde.KWin /VirtualDesktopManager
+    org.kde.KWin.VirtualDesktopManager.{count,desktops,createDesktop,removeDesktop,setDesktopName}`
+  - Never run `kwin_wayland --replace` / `/KWin replace` — it kills Wayland clients.
+    Use `qdbus6 org.kde.KWin /KWin org.kde.KWin.reconfigure` (safe).
+- **Waybar** (`waybar/.config/waybar/`): `custom/current-desktop` renders KWin desktops
+  via `scripts/current_desktop.sh`; `custom/updates` uses `checkupdates`, click runs
+  `scripts/waybar-update.sh` (`sudo pacman -Syu` in terminal).
+- **Chromium profiles**: `chromium-lian` / `chromium-work` wrappers pass
+  `--class=chromium-lian|-work` (unique WM class for pinning). `.desktop` files MUST
+  use absolute `Exec=/home/sadman/.local/bin/...` — the systemd session PATH lacks
+  `~/.local/bin` (see `kde/.config/environment.d/local-bin.conf`, applies at login).
+- **pacman `db.lck`**: "unable to lock database" with no pacman running = stale lock
+  (e.g. update killed by compositor restart). Fix: `sudo rm /var/lib/pacman/db.lck`.
+- **KDE capture workflow**: `./bin/capture-kde-config --force` to snapshot live config.
 
-### Core Philosophy
-- Modular package-based organization using GNU Stow
-- Vim-centric keybindings across all applications
-- Consistent theming (Catppuccin Mocha) and fonts (JetbrainsMono Nerd Font)
-- Heavy automation and productivity tooling integration
+## Conventions
 
-### Key Packages
-
-**nvim/**: LazyVim-based Neovim configuration
-- Uses Lazy.nvim package manager with lazy-lock.json for reproducible builds
-- Multi-language support: TypeScript, Go, Dart/Flutter, Python
-- GitHub Copilot integration
-- Custom plugin configurations in `lua/plugins/`
-
-**vscode/**: VS Code configuration with Vim mode
-- Comprehensive Vim keybinding emulation
-- Custom transparency and UI settings
-- Integrated with system clipboard and terminal
-
-**tmux/**: Terminal multiplexer configuration
-- Custom key bindings with prefix `C-a`
-- Session management with `tmux-se` script
-- Integration with system clipboard
-
-**zsh/**: Shell configuration with Zinit plugin manager
-- Powerlevel10k theme configuration
-- FZF, Zoxide, and modern CLI tool integrations
-- Custom aliases and functions
-
-**alacritty/**: Terminal emulator configuration
-- Catppuccin Mocha theme
-- JetbrainsMono Nerd Font
-- Optimized for transparency and performance
-
-**kde/**: KDE Plasma desktop environment configuration
-- KWin window manager settings with Krohnkite tiling support
-- Global shortcuts and window management rules
-- Plasma desktop layout and panel configuration
-- KRunner application launcher settings
-- Automated Krohnkite setup script in `bin/setup-krohnkite`
-
-### Development Workflow Commands
-
-**Tmux Session Management:**
-```bash
-# Available via bin/tmux-se script
-tmux-se <session-name>  # Create or attach to named session
-```
-
-**FZF Integration:**
-- `Ctrl+R`: Command history search
-- `Ctrl+T`: File search
-- `Alt+C`: Directory navigation
-
-**KDE/Krohnkite Tiling (when running KDE Plasma):**
-```bash
-# Setup script for Krohnkite tiling manager
-bin/setup-krohnkite  # Configures Krohnkite after installation
-
-# Shortcut management tools
-bin/kde-shortcuts list kwin  # List window management shortcuts
-bin/kde-shortcuts set kwin "Window Close" "Alt+Q"  # Set shortcut
-bin/apply-shortcuts-preset krohnkite-default  # Apply preset shortcuts
-```
-
-**Krohnkite Default Shortcuts:**
-- `Meta+F`: Toggle tiling for current window
-- `Meta+Shift+F`: Toggle floating for current window
-- `Meta+Return`: Set window as master
-- `Meta+J/K`: Move focus between windows
-- `Meta+Shift+J/K`: Move windows around
-- `Meta+H/L`: Resize master area
-- `Meta+\`: Switch to next layout
-- `Meta+R`: Rotate windows
-
-### Configuration Patterns
-
-**Neovim Plugin Management:**
-- Plugins defined in `nvim/.config/nvim/lua/plugins/`
-- Lock file at `nvim/.config/nvim/lazy-lock.json`
-- Language servers and formatters configured per filetype
-
-**Modular Configuration:**
-- Zsh configuration sources multiple files for different concerns
-- VS Code settings organized by feature categories
-- KDE configurations separated by component (kwin, plasma, shortcuts)
-
-**Cross-Application Integration:**
-- Shared clipboard configuration across tmux, nvim, and system
-- Consistent keybinding patterns (vim-style navigation)
-- Unified theme and font choices
-
-### Development Tools Supported
-
-**Languages:** TypeScript, Go, Dart/Flutter, Python, Lua, Shell
-**Tools:** Git, Docker, Node.js, npm/yarn/pnpm, Flutter SDK
-**Desktop:** KDE Plasma with Krohnkite tiling
-
-### KDE Plasma Setup Instructions
-
-**Quick Setup (Capture Current Config):**
-1. Capture your current setup: `bin/sync-kde-config --commit`
-2. Install on new system: `./install.sh` (automatically applies your config)
-
-**Manual Setup:**
-1. Install Krohnkite: `yay -S kwin-scripts-krohnkite-git`
-2. Capture current config: `bin/capture-kde-config`
-3. Apply KDE configuration: `stow kde`
-4. Run setup script: `bin/setup-krohnkite`
-5. Apply your shortcuts: `bin/apply-shortcuts-preset current-system`
-
-**Manual Configuration Steps:**
-- Replace template files in `kde/.config/` with your actual configuration files
-- Customize keyboard shortcuts in System Settings → Shortcuts → Global Shortcuts
-- Adjust Krohnkite settings in System Settings → Window Management → KWin Scripts
-
-**Important KDE Configuration Files:**
-- `kwinrc`: Main KWin configuration including Krohnkite settings
-- `kglobalshortcutsrc`: Global keyboard shortcuts
-- `kwinrulesrc`: Window rules for specific applications
-- `plasma-org.kde.plasma.desktop-appletsrc`: Desktop layout and widgets
-- `krunnerrc`: Application launcher settings
-
-### File Organization Conventions
-
-- Configuration files follow XDG Base Directory specification
-- Binary scripts in `bin/` directory
-- Package-specific configurations maintain upstream directory structure
-- Lock files and generated content preserved for reproducibility
-- KDE configurations stored in `kde/.config/` matching `~/.config/` structure
+- Commit style: `<area>: <desc>` (e.g. `kwin: ...`, `waybar: ...`, `autostart: ...`).
+- Branch `arch` is this machine; other branches target other machines — keep commits portable.
+- Never commit secrets (`.gitignore` covers `.env`, keys, tokens, pycache).
+- Symlinks in repo must be RELATIVE (absolute `/home/...` targets break fresh installs).
+  System-target links (`/usr/share/applications/*`) are fine.
+- Only commit/push when explicitly asked.
