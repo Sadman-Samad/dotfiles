@@ -101,7 +101,7 @@ zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
 
 # Aliases
 
-alias ls='eza --color=always --long --git --no-permissions --no-user --no-time  --no-filesize  --icons=always'
+alias ls='eza --color=always --long --git --icons=always'
 alias v='nvim .'
 alias vi='nvim'
 alias cd='z'
