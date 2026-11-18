@@ -84,13 +84,24 @@ main() {
         --query-gpu=temperature.gpu,fan.speed,utilization.gpu,power.draw,clocks.current.graphics \
         --format=csv,noheader,nounits 2>/dev/null | tr -d ' ')
 
-    # Driver not loaded / no GPU -> show nothing rather than junk.
-    if [[ -z "$line" ]]; then
+    # Fallback for a driver/library version mismatch (post-update, pre-reboot):
+    # cached 615.78.08 nvidia-smi + libnvidia-ml matching the loaded kernel module.
+    if [[ ! "$line" =~ ^[0-9]+(\.[0-9]+)?(,[0-9.]+){4}$ && -x "$HOME/.local/lib/nvidia-615/nvidia-smi" ]]; then
+        line=$(env LD_LIBRARY_PATH="$HOME/.local/lib/nvidia-615" \
+            "$HOME/.local/lib/nvidia-615/nvidia-smi" \
+            --query-gpu=temperature.gpu,fan.speed,utilization.gpu,power.draw,clocks.current.graphics \
+            --format=csv,noheader,nounits 2>/dev/null | tr -d ' ')
+    fi
+
+    # Driver not loaded / no GPU / NVML error text on stdout -> show nothing rather than junk.
+    # Expected line after tr -d ' ' is "49,30,11,44.32,1777" (temp may be decimal on 620+).
+    if [[ ! "$line" =~ ^[0-9]+(\.[0-9]+)?(,[0-9.]+){4}$ ]]; then
         printf '{"text":"","tooltip":"GPU unavailable"}\n'
         return
     fi
 
     IFS=, read -r gpu_temp gpu_fan gpu_util gpu_power gpu_clock <<<"$line"
+    gpu_temp=${gpu_temp%.*}
 
     local cput cpu_fan_str
     cput=$(cpu_temp 2>/dev/null || echo "?")

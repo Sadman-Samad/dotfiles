@@ -20,14 +20,14 @@ fi
 case "$TERMINAL" in
     kitty|foot|alacritty)
         exec "$TERMINAL" -e bash -lc \
-            'echo "==> Running system upgrade..."; sudo pacman -Syu; echo; echo "Done. Press Enter to close."; read -r'
+            'echo "==> Running system upgrade..."; sudo pacman -Syu; pkill -USR2 waybar || true; echo; echo "Done. Press Enter to close."; read -r'
         ;;
     ghostty)
         exec "$TERMINAL" -e bash -lc \
-            'echo "==> Running system upgrade..."; sudo pacman -Syu; echo; echo "Done. Press Enter to close."; read -r'
+            'echo "==> Running system upgrade..."; sudo pacman -Syu; pkill -USR2 waybar || true; echo; echo "Done. Press Enter to close."; read -r'
         ;;
     *)
         exec "$TERMINAL" -e bash -lc \
-            'echo "==> Running system upgrade..."; sudo pacman -Syu; echo; echo "Done. Press Enter to close."; read -r'
+            'echo "==> Running system upgrade..."; sudo pacman -Syu; pkill -USR2 waybar || true; echo; echo "Done. Press Enter to close."; read -r'
         ;;
 esac
