@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+LLAMA_DIR="$HOME/.local/llama-cuda/llama-b12387"
+CUDA_LIBS="$HOME/.local/llama-cuda/cudart-llama-b12387-bin-ubuntu-cuda-13.5-x64"
+MODEL="${MODEL:-$HOME/models/gemma4-12b-q4/gemma-4-12b-it-q4_K_M.gguf}"
+MMPROJ="${MMPROJ:-$HOME/models/gemma4-12b-q4/mmproj-bf16.gguf}"
+PORT="${PORT:-8080}"
+
+export LD_LIBRARY_PATH="$LLAMA_DIR:$CUDA_LIBS${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
+for f in "$MODEL" "$MMPROJ"; do
+  if [[ ! -f "$f" ]]; then
+    echo "missing: $f" >&2
+    exit 1
+  fi
+done
+
+exec "$LLAMA_DIR/llama-server" \
+  -m "$MODEL" \
+  --mmproj "$MMPROJ" \
+  --alias gemma4-128k \
+  -ngl 99 \
+  -fa on \
+  --no-kv-offload \
+  -c 131072 \
+  --host 127.0.0.1 \
+  --port "$PORT" \
+  "$@"

@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+LLAMA_DIR="$HOME/.local/llama-cuda/llama-b12387"
+CUDA_LIBS="$HOME/.local/llama-cuda/cudart-llama-b12387-bin-ubuntu-cuda-13.5-x64"
+MODEL="${MODEL:-$HOME/models/saluki-27b/Underdog-Saluki-27B-1.0-IQ2-mix.gguf}"
+TEMPLATE="${TEMPLATE:-$HOME/models/saluki-27b/chat-template.jinja}"
+ALIAS="${ALIAS:-saluki-27b-128k}"
+PORT="${PORT:-8081}"
+
+export LD_LIBRARY_PATH="$LLAMA_DIR:$CUDA_LIBS${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
+for f in "$MODEL" "$TEMPLATE"; do
+  if [[ ! -f "$f" ]]; then
+    echo "missing: $f" >&2
+    exit 1
+  fi
+done
+
+exec "$LLAMA_DIR/llama-server" \
+  -m "$MODEL" \
+  --alias "$ALIAS" \
+  --jinja \
+  --chat-template-file "$TEMPLATE" \
+  -ngl 99 \
+  -fa on \
+  --no-kv-offload \
+  -c 131072 \
+  -ctk q4_0 \
+  -ctv q4_0 \
+  --host 127.0.0.1 \
+  --port "$PORT" \
+  "$@"
