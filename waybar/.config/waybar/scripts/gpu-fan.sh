@@ -77,6 +77,23 @@ build_tooltip() {
 EOF
 }
 
+# Snapshot the working nvidia-smi + libnvidia-ml for the loaded driver version,
+# so the fallback below survives the next post-update/pre-reboot mismatch.
+cache_driver() {
+    local ver dir src_ml
+    ver=$(grep -oE '[0-9]+\.[0-9]+\.[0-9]+' /proc/driver/nvidia/version 2>/dev/null | head -1)
+    [[ -n "$ver" ]] || return 0
+    dir="$HOME/.local/lib/nvidia-$ver"
+    [[ -x "$dir/nvidia-smi" ]] && return 0
+    src_ml=$(readlink -f /usr/lib/libnvidia-ml.so.1 2>/dev/null)
+    [[ -n "$src_ml" && -x /usr/bin/nvidia-smi ]] || return 0
+    mkdir -p "$dir" || return 0
+    cp -f /usr/bin/nvidia-smi "$dir/nvidia-smi" 2>/dev/null || return 0
+    cp -f "$src_ml" "$dir/libnvidia-ml.so.$ver" 2>/dev/null || return 0
+    ln -sf "libnvidia-ml.so.$ver" "$dir/libnvidia-ml.so.1"
+    ln -sf "libnvidia-ml.so.1" "$dir/libnvidia-ml.so"
+}
+
 main() {
     # nvidia-smi CSV (noheader,nounits) -> "49,30,11,44.32,1777". Split on comma.
     local line
@@ -84,13 +101,23 @@ main() {
         --query-gpu=temperature.gpu,fan.speed,utilization.gpu,power.draw,clocks.current.graphics \
         --format=csv,noheader,nounits 2>/dev/null | tr -d ' ')
 
-    # Fallback for a driver/library version mismatch (post-update, pre-reboot):
-    # cached 615.78.08 nvidia-smi + libnvidia-ml matching the loaded kernel module.
-    if [[ ! "$line" =~ ^[0-9]+(\.[0-9]+)?(,[0-9.]+){4}$ && -x "$HOME/.local/lib/nvidia-615/nvidia-smi" ]]; then
-        line=$(env LD_LIBRARY_PATH="$HOME/.local/lib/nvidia-615" \
-            "$HOME/.local/lib/nvidia-615/nvidia-smi" \
-            --query-gpu=temperature.gpu,fan.speed,utilization.gpu,power.draw,clocks.current.graphics \
-            --format=csv,noheader,nounits 2>/dev/null | tr -d ' ')
+    if [[ "$line" =~ ^[0-9]+(\.[0-9]+)?(,[0-9.]+){4}$ ]]; then
+        cache_driver
+    else
+        # Fallback for a driver/library version mismatch (post-update, pre-reboot):
+        # try cached nvidia-smi + libnvidia-ml bundles in ~/.local/lib/nvidia-*;
+        # the one matching the loaded kernel module is the first to return valid CSV.
+        local dir candidate
+        for dir in "$HOME"/.local/lib/nvidia-*/; do
+            [[ -x "${dir}nvidia-smi" ]] || continue
+            candidate=$(env LD_LIBRARY_PATH="$dir" "${dir}nvidia-smi" \
+                --query-gpu=temperature.gpu,fan.speed,utilization.gpu,power.draw,clocks.current.graphics \
+                --format=csv,noheader,nounits 2>/dev/null | tr -d ' ')
+            if [[ "$candidate" =~ ^[0-9]+(\.[0-9]+)?(,[0-9.]+){4}$ ]]; then
+                line="$candidate"
+                break
+            fi
+        done
     fi
 
     # Driver not loaded / no GPU / NVML error text on stdout -> show nothing rather than junk.

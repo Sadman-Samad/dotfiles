@@ -74,17 +74,6 @@ tccd=$(rt "$cpu_dir" temp3) || tccd="—"
 mb_dir=$(hwmon_dir nct6797) || mb_dir=""
 cputin=$(rt "$mb_dir" temp2) || cputin="—"
 systin=$(rt "$mb_dir" temp1) || systin="—"
-nvme_dir=$(hwmon_dir nvme) || nvme_dir=""
-if [[ -n "$nvme_dir" ]]; then
-    nvm=$(rt "$nvme_dir" temp1) || nvm="—"
-    nvm_crit=$(awk -v t="$(cat "$nvme_dir/temp1_crit" 2>/dev/null || echo 0)" 'BEGIN{printf "%d", t/1000}')
-else
-    nvm="—"; nvm_crit="—"
-fi
-sata=$(busctl get-property org.freedesktop.UDisks2 \
-    /org/freedesktop/UDisks2/drives/T_FORCE_512GB_TPBF2410210010101837 \
-    org.freedesktop.UDisks2.Drive.Ata SmartTemperature 2>/dev/null \
-    | awk '{k=$2+0; if (k<200) exit 1; printf "%d", k-273.15}') || sata="—"
 
 # --- CPU fan (nct6797, first non-zero) ------------------------------------------
 fan_rpm="—"
@@ -104,7 +93,7 @@ tip=$(cat <<EOF
  ${row2}
 
 <b><span color='#94e2d5'> Board </span></b>  CPUTIN ${cputin}°C   SYSTIN ${systin}°C
-<b><span color='#89dceb'> SSD </span></b>   NVMe ${nvm}°C (crit ${nvm_crit}°C)   SATA ${sata}°C
+$(~/.config/waybar/scripts/ssd-health.sh)
 <b><span color='#cba6f7'> RAM </span></b>   no temp sensor</tt>
 EOF
 )
