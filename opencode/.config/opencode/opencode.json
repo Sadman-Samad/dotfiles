@@ -1,0 +1,63 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "llama.cpp-saluki/saluki-27b-128k",
+  "provider": {
+    "llama.cpp": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "llama.cpp",
+      "options": {
+        "baseURL": "http://localhost:8080/v1"
+      },
+      "models": {
+        "gemma4-128k": {
+          "name": "Gemma 4 12B (128K)",
+          "tool_call": true,
+          "reasoning": true,
+          "attachment": true,
+          "options": {
+            "think": false
+          },
+          "limit": {
+            "context": 131072,
+            "output": 8192
+          }
+        },
+        "gemma4:31b-cloud": {
+          "name": "Gemma 4 31B (Cloud BF16)",
+          "tool_call": true,
+          "reasoning": true,
+          "attachment": true,
+          "options": {
+            "think": false
+          },
+          "limit": {
+            "context": 262144,
+            "output": 8192
+          }
+        }
+      }
+    },
+    "llama.cpp-saluki": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "llama.cpp (Saluki)",
+      "options": {
+        "baseURL": "http://localhost:8081/v1"
+      },
+      "models": {
+        "saluki-27b-128k": {
+          "name": "Saluki 27B IQ2 (128K)",
+          "tool_call": true,
+          "reasoning": true,
+          "attachment": false,
+          "limit": {
+            "context": 131072,
+            "output": 8192
+          }
+        }
+      }
+    }
+  },
+  "plugin": [
+    "./plugin/llama-autostart.ts"
+  ]
+}

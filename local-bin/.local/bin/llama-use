@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Manage the local llama.cpp servers: llama-use {saluki|gemma|off|status}
+set -uo pipefail
+
+SALUKI=llama-saluki.service
+GEMMA=llama-server.service
+
+case "${1:-status}" in
+    saluki) systemctl --user start "$SALUKI" ;;
+    gemma)  systemctl --user start "$GEMMA" ;;
+    off)    systemctl --user stop "$SALUKI" "$GEMMA" ;;
+    status) ;;
+    *)      echo "usage: llama-use {saluki|gemma|off|status}" >&2; exit 1 ;;
+esac
+
+s=$(systemctl --user is-active "$SALUKI" 2>/dev/null)
+g=$(systemctl --user is-active "$GEMMA" 2>/dev/null)
+[[ "$s" == active ]] && echo "saluki  on   :8081" || echo "saluki  off"
+[[ "$g" == active ]] && echo "gemma   on   :8080" || echo "gemma   off"

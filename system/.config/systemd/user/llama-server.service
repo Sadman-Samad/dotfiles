@@ -1,0 +1,13 @@
+[Unit]
+Description=llama.cpp server (Gemma 4 12B, 128K)
+After=network.target
+Conflicts=llama-saluki.service
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/llama-gemma-128k
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

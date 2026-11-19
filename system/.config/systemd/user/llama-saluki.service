@@ -1,0 +1,13 @@
+[Unit]
+Description=llama.cpp server (Saluki 27B, 128K)
+After=network.target
+Conflicts=llama-server.service
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/llama-saluki-128k
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
